@@ -1,0 +1,33 @@
+# Shell scripts always use LF
+*.sh text eol=lf
+docker-entrypoint.sh text eol=lf
+docker-healthcheck.sh text eol=lf
+pyproject.toml text eol=lf
+*.toml text eol=lf
+
+# Docker-related files
+Dockerfile text eol=lf
+.dockerignore text eol=lf
+docker-compose.yml text eol=lf
+docker-compose.yaml text eol=lf
+
+# Python projects
+*.py text eol=lf
+pyproject.toml text eol=lf
+requirements.txt text eol=lf
+Pipfile text eol=lf
+*.cfg text eol=lf
+*.ini text eol=lf
+
+# Other configs
+*.md text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+.gitignore text eol=lf
+
+# Binary files (no conversion)
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary

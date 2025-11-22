@@ -1,0 +1,51 @@
+# Pre-commit hooks для автоматической проверки кода
+# Установка: pip install pre-commit
+# Активация: pre-commit install
+# Запуск вручную: pre-commit run --all-files
+
+repos:
+  # Базовые проверки
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        name: Удаление пробелов в конце строк
+      - id: end-of-file-fixer
+        name: Пустая строка в конце файла
+      - id: check-yaml
+        name: Проверка YAML файлов
+      - id: check-added-large-files
+        name: Проверка больших файлов
+        args: ['--maxkb=1000']
+      - id: check-merge-conflict
+        name: Проверка маркеров конфликтов слияния
+      - id: check-toml
+        name: Проверка TOML файлов
+      - id: mixed-line-ending
+        name: Проверка окончаний строк
+        args: ['--fix=lf']
+
+  # Black - автоформатирование
+  - repo: https://github.com/psf/black
+    rev: 25.1.0
+    hooks:
+      - id: black
+        name: Black форматирование
+        language_version: python3
+
+  # isort - сортировка импортов
+  - repo: https://github.com/PyCQA/isort
+    rev: 6.0.1
+    hooks:
+      - id: isort
+        name: Сортировка импортов
+        args: ["--profile", "black", "--line-length", "119"]
+
+  # flake8 - проверка стиля кода
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.3.0
+    hooks:
+      - id: flake8
+        name: Flake8 проверка стиля
+        args: ['--config=.flake8']
+        additional_dependencies: [flake8-docstrings]
