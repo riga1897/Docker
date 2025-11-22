@@ -55,7 +55,7 @@ media/
 
 # Docker
 Dockerfile
-docker-compose.yaml
+docker-compose.yml
 .dockerignore
 
 # Documentation

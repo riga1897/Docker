@@ -1,8 +1,64 @@
+version: '3.8'
+
 services:
-  nginx:
+  web:
     build: .
+    command: ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]
+    healthcheck:
+      test: ["CMD", "/docker-healthcheck/healthcheck-web.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     ports:
-      - "80:80"
+      - "8000:8000"
+    env_file:
+      - .env
+
+  celery-worker:
+    build: .
+    command: ["celery", "-A", "config", "worker", "--loglevel=info"]
+    healthcheck:
+      test: ["CMD", "/docker-healthcheck/healthcheck-celery.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - db
+
+  celery-beat:
+    build: .
+    command: ["celery", "-A", "config", "beat", "--loglevel=info", "--scheduler", "django_celery_beat.schedulers:DatabaseScheduler"]
+    healthcheck:
+      test: ["CMD", "/docker-healthcheck/healthcheck-celery-beat.sh"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    env_file:
+      - .env
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-      - ./html:/usr/share/nginx/html
+      - ./celerybeat:/app/celerybeat
+    depends_on:
+      - redis
+      - db
+
+  db:
+    image: postgres:16
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
