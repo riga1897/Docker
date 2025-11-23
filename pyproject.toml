@@ -5,67 +5,50 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry]
 name = "DRF"
 version = "0.1.0"
-description = "Docker"
+description = "Django REST Framework Learning Management System"
 authors = ["Ri Ga <riga1897@yandex.ru>"]
 readme = "README.md"
-# packages = [{include = "src"}]
 
 [tool.poetry.dependencies]
-python = "^3.13.5"
-requests = "^2.32.4"
-poetry-core = ">=2.2.1"
-psycopg2-binary = "^2.9.10"
+# Python версия: ^3.12 для совместимости локальной разработки (Replit 3.12.11)
+# Production/CI закреплены на 3.13.5 через Dockerfile и GitHub Actions
+python = "^3.12"
 django = "^5.2.7"
+djangorestframework = "^3.16.1"
+djangorestframework-simplejwt = "^5.5.1"
+djangorestframework-stubs = "^3.16.5"
+drf-spectacular = "^0.29.0"
+django-filter = "^25.2"
+django-cors-headers = "^4.9.0"
+django-apscheduler = "^0.7.0"
+django-celery-beat = "^2.8.1"
+django-stubs = "^5.2.5"
+celery = "^5.5.3"
+redis = "^7.0.0"
+stripe = "^13.2.0"
+psycopg2-binary = "^2.9.10"
+dj-database-url = "^3.0.1"
 python-dotenv = "^1.2.1"
 pillow = "^12.0.0"
-ipython = "==9.6.0"
-asttokens = "==3.0.0"
-decorator = "==5.2.1"
-executing = "==2.2.1"
-ipython-pygments-lexers = "==1.1.1"
-jedi = "==0.19.2"
-matplotlib-inline = "^0.2.1"
-parso = "==0.8.5"
-prompt-toolkit = "==3.0.52"
-pure-eval = "==0.2.3"
-stack-data = "==0.6.3"
-traitlets = "==5.14.3"
-wcwidth = "==0.2.14"
-django-stubs = "^5.2.5"
-pytest-xdist = "^3.8.0"
-pre-commit = "^4.3.0"
+requests = "^2.32.4"
+gunicorn = "^23.0.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.4.2"
 pytest-django = "^4.11.1"
-django-apscheduler = "^0.7.0"
+pytest-mock = "^3.15.0"
+pytest-cov = "^7.0.0"
+pytest-xdist = "^3.8.0"
 pytest-env = "^1.1.5"
-django-stub = "^0.1"
-redis = "^7.0.0"
-djangorestframework = "^3.16.1"
-dj-database-url = "^3.0.1"
-flake8 = "^7.3.0"
-mypy = "^1.17.1"
+factory-boy = "^3.3.1"
+ipython = "^9.6.0"
 black = "^25.1.0"
 isort = "^7.0.0"
 ruff = "^0.14.2"
-autopep8 = "^2.3.2"
-pydocstyle = "^6.3.0"
-pytest = "^8.4.2"
-pytest-mock = "^3.15.0"
-pytest-cov = "^7.0.0"
-factory-boy = "^3.3.1"
-djangorestframework-stubs = "^3.16.5"
-django-filter = "^25.2"
+mypy = "^1.17.1"
+flake8 = "^7.3.0"
 types-django-filter = "^25.2.0.20251010"
-djangorestframework-simplejwt = "^5.5.1"
-stripe = "^13.2.0"
-drf-spectacular = "^0.29.0"
-django-cors-headers = "^4.9.0"
-celery = "^5.5.3"
-django-celery-beat = "^2.8.1"
-
-
-[tool.poetry.group.lint.dependencies]
-
-[tool.poetry.group.tests.dependencies]
+pre-commit = "^4.3.0"
 
 [tool.poetry.scripts]
 check = "scripts.check:main"
@@ -76,14 +59,16 @@ line-length = 119
 exclude = '''
 (
     /(
-        \.eggs.py
-    | \.git
-    | \.hg
-    | \.mypy_cache
-    | \.tox
-    | \.venv
+        \.eggs
+      | \.git
+      | \.hg
+      | \.mypy_cache
+      | \.tox
+      | \.venv
+      | migrations
+      | attached_assets
+      | vehicle
     )/
-    | foo.py
 )
 '''
 
@@ -117,16 +102,13 @@ module = "rest_framework.*"
 ignore_missing_imports = true
 
 [tool.isort]
-# максимальная длина строки
 line_length = 119
-# Совместимость с black
 profile = "black"
 
 [tool.ruff]
 line-length = 119
 preview = true
 
-# Исключить ненужные директории и файлы
 exclude = [
     ".venv",
     ".git",
@@ -136,45 +118,35 @@ exclude = [
     "*.egg-info",
     "migrations",
     "attached_assets",
+    "vehicle",
     ".local",
     ".idea",
     "build",
     "dist",
 ]
 
-# Всегда соблюдать правила exclude
 force-exclude = true
 
-# Linter-specific settings
 [tool.ruff.lint]
-# Выбранные правила проверки (без I - сортировку импортов делает isort)
 select = [
-    "B",    # flake8-bugbear (потенциальные баги)
-    "E",    # pycodestyle errors (стиль кода)
-    "F",    # pyflakes (ошибки импорта и неиспользуемые переменные)
-    "C90",  # mccabe (сложность кода)
-    "UP",   # pyupgrade (современный синтаксис Python)
-    "SIM",  # flake8-simplify (упрощения кода)
+    "B",    # flake8-bugbear
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "C90",  # mccabe
+    "UP",   # pyupgrade
+    "SIM",  # flake8-simplify
 ]
 
-# Автоматически исправляемые правила (безопасные)
 fixable = ["ALL"]
 unfixable = []
 
-# Игнорирование для конкретных файлов
 [tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["F401"]  # Неиспользуемые импорты в __init__.py это нормально
-"config/settings_test.py" = ["F403"]  # Star imports допустимы в тестовых настройках Django
+"__init__.py" = ["F401"]
+"config/settings_test.py" = ["F403"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings_test"
 cache_dir = "/tmp/.pytest_cache"
-# filterwarnings = [
-#     "error",  # Превращаем все предупреждения в ошибки (строго)
-#     # ИЛИ используйте "ignore" чтобы игнорировать все предупреждения
-#     # "ignore::DeprecationWarning",  # Игнорировать устаревшие функции
-#     # "ignore::PendingDeprecationWarning",
-# ]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -195,8 +167,6 @@ markers = [
 ]
 
 [tool.pytest_env]
-# Переменная для предотвращения запуска APScheduler во время тестов.
-# Устанавливается ДО инициализации Django приложений.
 PYTEST_RUNNING = "1"
 
 [tool.coverage.run]

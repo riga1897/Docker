@@ -4,6 +4,7 @@ from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.test import override_settings
 
 from users.services import (
     check_stripe_payment_status,
@@ -195,39 +196,44 @@ class TestStripePaymentStatus:
 
 @pytest.mark.django_db
 class TestStripeURLHelpers:
-    """Тесты для вспомогательных функций генерации URL."""
+    """
+    Тесты для вспомогательных функций генерации URL.
 
-    @patch.dict("os.environ", {"REPLIT_DEV_DOMAIN": "localhost:5000"})
+    Эти функции теперь используют build_url() из config.utils,
+    которая опирается на settings.SITE_DOMAIN.
+    """
+
+    @override_settings(SITE_DOMAIN="localhost:5000")
     def test_get_success_url_localhost(self) -> None:
         """Генерация success URL для localhost."""
         url = get_stripe_success_url()
         assert url == "http://localhost:5000/api/payments/success/"
 
-    @patch.dict("os.environ", {"REPLIT_DEV_DOMAIN": "myapp-username.replit.dev"})
+    @override_settings(SITE_DOMAIN="myapp-username.replit.dev")
     def test_get_success_url_replit(self) -> None:
         """Генерация success URL для Replit домена."""
         url = get_stripe_success_url()
         assert url == "https://myapp-username.replit.dev/api/payments/success/"
 
-    @patch.dict("os.environ", {"REPLIT_DEV_DOMAIN": "localhost:5000"})
+    @override_settings(SITE_DOMAIN="localhost:5000")
     def test_get_cancel_url_localhost(self) -> None:
         """Генерация cancel URL для localhost."""
         url = get_stripe_cancel_url()
         assert url == "http://localhost:5000/api/payments/cancel/"
 
-    @patch.dict("os.environ", {"REPLIT_DEV_DOMAIN": "myapp-username.replit.dev"})
+    @override_settings(SITE_DOMAIN="myapp-username.replit.dev")
     def test_get_cancel_url_replit(self) -> None:
         """Генерация cancel URL для Replit домена."""
         url = get_stripe_cancel_url()
         assert url == "https://myapp-username.replit.dev/api/payments/cancel/"
 
-    @patch.dict("os.environ", {}, clear=True)
+    @override_settings(SITE_DOMAIN="localhost:8000")
     def test_get_success_url_default(self) -> None:
         """Генерация success URL с дефолтным доменом."""
         url = get_stripe_success_url()
         assert url == "http://localhost:8000/api/payments/success/"
 
-    @patch.dict("os.environ", {}, clear=True)
+    @override_settings(SITE_DOMAIN="localhost:8000")
     def test_get_cancel_url_default(self) -> None:
         """Генерация cancel URL с дефолтным доменом."""
         url = get_stripe_cancel_url()

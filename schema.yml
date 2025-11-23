@@ -1,0 +1,1770 @@
+openapi: 3.0.3
+info:
+  title: LMS API
+  version: 1.0.0
+  description: API для системы управления обучением (Learning Management System)
+paths:
+  /api/:
+    get:
+      operationId: root_retrieve
+      description: Главная страница API со списком всех доступных ресурсов и документации
+      summary: API Root
+      tags:
+      - API
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiRootResponse'
+          description: Словарь со ссылками на все доступные эндпоинты API
+  /api/courses/:
+    get:
+      operationId: courses_list
+      description: Возвращает список всех курсов с информацией о количестве уроков
+        и статусе подписки
+      summary: Список всех курсов
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Номер страницы для пагинации
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: Количество элементов на странице (по умолчанию 10, максимум 100)
+      tags:
+      - Курсы
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCourseList'
+          description: ''
+    post:
+      operationId: courses_create
+      description: Создает новый курс. Недоступно модераторам.
+      summary: Создание нового курса
+      tags:
+      - Курсы
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CourseRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CourseRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Course'
+          description: ''
+  /api/courses/{id}/:
+    get:
+      operationId: courses_retrieve
+      description: Возвращает подробную информацию о курсе, включая список уроков
+      summary: Детальная информация о курсе
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Курс.
+        required: true
+      tags:
+      - Курсы
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Course'
+          description: ''
+    put:
+      operationId: courses_update
+      description: Обновляет все поля курса. Доступно владельцу или модератору.
+      summary: Полное обновление курса
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Курс.
+        required: true
+      tags:
+      - Курсы
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CourseRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CourseRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Course'
+          description: ''
+    patch:
+      operationId: courses_partial_update
+      description: Обновляет выбранные поля курса. Доступно владельцу или модератору.
+      summary: Частичное обновление курса
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Курс.
+        required: true
+      tags:
+      - Курсы
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCourseRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCourseRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCourseRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Course'
+          description: ''
+    delete:
+      operationId: courses_destroy
+      description: Удаляет курс. Доступно только владельцу.
+      summary: Удаление курса
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Курс.
+        required: true
+      tags:
+      - Курсы
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/lessons/:
+    get:
+      operationId: lessons_list
+      description: Возвращает список всех уроков с пагинацией
+      summary: Список всех уроков
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Номер страницы для пагинации
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: Количество элементов на странице (по умолчанию 10, максимум 100)
+      tags:
+      - Уроки
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLessonList'
+          description: ''
+    post:
+      operationId: lessons_create
+      description: Создает новый урок. Недоступно модераторам.
+      summary: Создание нового урока
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - Уроки
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LessonRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LessonRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LessonRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLessonList'
+          description: ''
+  /api/lessons/{id}/:
+    get:
+      operationId: lessons_retrieve
+      description: Возвращает подробную информацию об уроке
+      summary: Детальная информация об уроке
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Уроки
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lesson'
+          description: ''
+    put:
+      operationId: lessons_update
+      description: Обновляет все поля урока. Доступно владельцу или модератору.
+      summary: Полное обновление урока
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Уроки
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LessonRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LessonRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LessonRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lesson'
+          description: ''
+    patch:
+      operationId: lessons_partial_update
+      description: Обновляет выбранные поля урока. Доступно владельцу или модератору.
+      summary: Частичное обновление урока
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Уроки
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedLessonRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedLessonRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedLessonRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lesson'
+          description: ''
+    delete:
+      operationId: lessons_destroy
+      description: Удаляет урок. Доступно только владельцу.
+      summary: Удаление урока
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Уроки
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/payments/:
+    get:
+      operationId: payments_list
+      description: Возвращает все платежи текущего пользователя с возможностью фильтрации
+        и сортировки
+      summary: Список платежей пользователя
+      parameters:
+      - in: query
+        name: course
+        schema:
+          type: integer
+        description: Фильтр по ID курса
+      - in: query
+        name: lesson
+        schema:
+          type: integer
+        description: Фильтр по ID урока
+      - in: query
+        name: ordering
+        schema:
+          type: string
+        description: Сортировка по полю (payment_date, amount, -payment_date, -amount)
+      - in: query
+        name: payment_method
+        schema:
+          type: string
+        description: Фильтр по способу оплаты (cash/transfer/stripe)
+      tags:
+      - Платежи
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Payment'
+          description: ''
+    post:
+      operationId: payments_create
+      description: Создает новый платеж для текущего пользователя. При указании метода
+        'stripe' автоматически создается платежная ссылка Stripe.
+      summary: Создание нового платежа
+      tags:
+      - Платежи
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+  /api/payments/{id}/:
+    get:
+      operationId: payments_retrieve
+      description: Возвращает подробную информацию о конкретном платеже
+      summary: Детальная информация о платеже
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Платёж.
+        required: true
+      tags:
+      - Платежи
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+    put:
+      operationId: payments_update
+      description: Обновляет все поля платежа. Доступно только владельцу.
+      summary: Полное обновление платежа
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Платёж.
+        required: true
+      tags:
+      - Платежи
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+    patch:
+      operationId: payments_partial_update
+      description: Обновляет выбранные поля платежа. Доступно только владельцу.
+      summary: Частичное обновление платежа
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Платёж.
+        required: true
+      tags:
+      - Платежи
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPaymentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPaymentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPaymentRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+    delete:
+      operationId: payments_destroy
+      description: Удаляет платеж. Доступно только владельцу.
+      summary: Удаление платежа
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Платёж.
+        required: true
+      tags:
+      - Платежи
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/payments/{id}/check_status/:
+    get:
+      operationId: payments_check_status_retrieve
+      description: Проверяет статус платежа в Stripe (дополнительное задание)
+      summary: Проверить статус оплаты
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Платёж.
+        required: true
+      tags:
+      - Платежи
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  payment_status:
+                    type: string
+                    example: paid
+                  message:
+                    type: string
+                    example: Платёж успешно завершён
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Платёж не был создан через Stripe
+          description: ''
+  /api/register/:
+    post:
+      operationId: register_create
+      description: Создает новый аккаунт пользователя. Доступно без аутентификации.
+      summary: Регистрация нового пользователя
+      tags:
+      - Пользователи
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Register'
+          description: ''
+        '400':
+          description: No response body
+  /api/subscription/:
+    post:
+      operationId: subscription_create
+      description: 'Переключает подписку на курс: если подписка существует - удаляет,
+        если нет - создает'
+      summary: Управление подпиской на курс
+      tags:
+      - Подписки
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                course_id:
+                  type: integer
+                  description: ID курса для подписки/отписки
+              required:
+              - course_id
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: подписка добавлена
+          description: ''
+  /api/token/:
+    post:
+      operationId: token_create
+      description: |-
+        Takes a set of user credentials and returns an access and refresh JSON web
+        token pair to prove the authentication of those credentials.
+      tags:
+      - token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenObtainPair'
+          description: ''
+  /api/token/refresh/:
+    post:
+      operationId: token_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/token/verify/:
+    post:
+      operationId: token_verify_create
+      description: |-
+        Takes a token and indicates if it is valid.  This view provides no
+        information about a token's fitness for a particular use.
+      tags:
+      - token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenVerifyRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenVerifyRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenVerifyRequest'
+        required: true
+      responses:
+        '200':
+          description: No response body
+  /api/users/:
+    get:
+      operationId: users_list
+      description: Возвращает публичную информацию обо всех пользователях
+      summary: Список всех пользователей
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      tags:
+      - Пользователи
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PublicUser'
+          description: ''
+    post:
+      operationId: users_create
+      description: Не используется для регистрации, используйте /api/register/ вместо
+        этого
+      summary: Создание пользователя (используйте /api/register/)
+      tags:
+      - Пользователи
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserDetailRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDetail'
+          description: ''
+  /api/users/{id}/:
+    get:
+      operationId: users_retrieve
+      description: Возвращает публичные данные пользователя, или полные данные если
+        запрашивается свой профиль
+      summary: Детальная информация о пользователе
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this пользователь.
+        required: true
+      tags:
+      - Пользователи
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicUser'
+          description: ''
+    put:
+      operationId: users_update
+      description: Пользователь может обновить только свой профиль
+      summary: Обновление профиля пользователя
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this пользователь.
+        required: true
+      tags:
+      - Пользователи
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserDetailRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDetail'
+          description: ''
+    patch:
+      operationId: users_partial_update
+      description: Пользователь может частично обновить только свой профиль
+      summary: Частичное обновление профиля пользователя
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this пользователь.
+        required: true
+      tags:
+      - Пользователи
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserDetailRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDetail'
+          description: ''
+    delete:
+      operationId: users_destroy
+      description: Пользователь может удалить только свой профиль
+      summary: Удаление профиля пользователя
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this пользователь.
+        required: true
+      tags:
+      - Пользователи
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+components:
+  schemas:
+    ApiRootResponse:
+      type: object
+      properties:
+        course:
+          type: string
+          format: uri
+        user:
+          type: string
+          format: uri
+        payment:
+          type: string
+          format: uri
+        lesson:
+          type: string
+          format: uri
+        register:
+          type: string
+          format: uri
+        auth:
+          type: object
+          additionalProperties: {}
+        documentation:
+          type: object
+          additionalProperties: {}
+      required:
+      - auth
+      - course
+      - documentation
+      - lesson
+      - payment
+      - register
+      - user
+    Course:
+      type: object
+      description: |-
+        Сериализатор для модели Course.
+
+        Включает все поля модели для CRUD операций.
+        Добавлены:
+        - lessons_count: количество уроков в курсе
+        - lessons: полная информация по всем урокам курса
+        - is_subscribed: подписан ли текущий пользователь на курс
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          title: Название курса
+          description: Укажите название курса
+          maxLength: 200
+        description:
+          type: string
+          title: Описание курса
+          description: Подробное описание курса
+        preview:
+          type: string
+          format: uri
+          nullable: true
+          title: Превью курса
+          description: Загрузите изображение для превью курса
+        owner:
+          type: integer
+          readOnly: true
+          title: Владелец курса
+          description: Пользователь, создавший курс
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата создания
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата обновления
+        lessons_count:
+          type: integer
+          description: Возвращает количество уроков в курсе.
+          readOnly: true
+        lessons:
+          type: array
+          items:
+            $ref: '#/components/schemas/Lesson'
+          readOnly: true
+        is_subscribed:
+          type: boolean
+          description: |-
+            Проверяет, подписан ли текущий пользователь на курс.
+
+            Returns:
+                True если пользователь аутентифицирован и подписан на курс,
+                False в противном случае.
+          readOnly: true
+      required:
+      - created_at
+      - description
+      - id
+      - is_subscribed
+      - lessons
+      - lessons_count
+      - owner
+      - title
+      - updated_at
+    CourseRequest:
+      type: object
+      description: |-
+        Сериализатор для модели Course.
+
+        Включает все поля модели для CRUD операций.
+        Добавлены:
+        - lessons_count: количество уроков в курсе
+        - lessons: полная информация по всем урокам курса
+        - is_subscribed: подписан ли текущий пользователь на курс
+      properties:
+        title:
+          type: string
+          minLength: 1
+          title: Название курса
+          description: Укажите название курса
+          maxLength: 200
+        description:
+          type: string
+          minLength: 1
+          title: Описание курса
+          description: Подробное описание курса
+        preview:
+          type: string
+          format: binary
+          nullable: true
+          title: Превью курса
+          description: Загрузите изображение для превью курса
+      required:
+      - description
+      - title
+    Lesson:
+      type: object
+      description: |-
+        Сериализатор для модели Lesson.
+
+        Включает все поля модели включая ForeignKey на Course.
+        Валидирует video_url - разрешены только ссылки на YouTube.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        course:
+          type: integer
+          title: Курс
+          description: Выберите курс, к которому относится урок
+        title:
+          type: string
+          title: Название урока
+          description: Укажите название урока
+          maxLength: 200
+        description:
+          type: string
+          title: Описание урока
+          description: Подробное описание урока
+        preview:
+          type: string
+          format: uri
+          nullable: true
+          title: Превью урока
+          description: Загрузите изображение для превью урока
+        video_url:
+          type: string
+          format: uri
+          maxLength: 500
+        owner:
+          type: integer
+          readOnly: true
+          title: Владелец урока
+          description: Пользователь, создавший урок
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата создания
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата обновления
+      required:
+      - course
+      - created_at
+      - description
+      - id
+      - owner
+      - title
+      - updated_at
+      - video_url
+    LessonRequest:
+      type: object
+      description: |-
+        Сериализатор для модели Lesson.
+
+        Включает все поля модели включая ForeignKey на Course.
+        Валидирует video_url - разрешены только ссылки на YouTube.
+      properties:
+        course:
+          type: integer
+          title: Курс
+          description: Выберите курс, к которому относится урок
+        title:
+          type: string
+          minLength: 1
+          title: Название урока
+          description: Укажите название урока
+          maxLength: 200
+        description:
+          type: string
+          minLength: 1
+          title: Описание урока
+          description: Подробное описание урока
+        preview:
+          type: string
+          format: binary
+          nullable: true
+          title: Превью урока
+          description: Загрузите изображение для превью урока
+        video_url:
+          type: string
+          format: uri
+          minLength: 1
+          maxLength: 500
+      required:
+      - course
+      - description
+      - title
+      - video_url
+    PaginatedCourseList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Course'
+    PaginatedLessonList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Lesson'
+    PatchedCourseRequest:
+      type: object
+      description: |-
+        Сериализатор для модели Course.
+
+        Включает все поля модели для CRUD операций.
+        Добавлены:
+        - lessons_count: количество уроков в курсе
+        - lessons: полная информация по всем урокам курса
+        - is_subscribed: подписан ли текущий пользователь на курс
+      properties:
+        title:
+          type: string
+          minLength: 1
+          title: Название курса
+          description: Укажите название курса
+          maxLength: 200
+        description:
+          type: string
+          minLength: 1
+          title: Описание курса
+          description: Подробное описание курса
+        preview:
+          type: string
+          format: binary
+          nullable: true
+          title: Превью курса
+          description: Загрузите изображение для превью курса
+    PatchedLessonRequest:
+      type: object
+      description: |-
+        Сериализатор для модели Lesson.
+
+        Включает все поля модели включая ForeignKey на Course.
+        Валидирует video_url - разрешены только ссылки на YouTube.
+      properties:
+        course:
+          type: integer
+          title: Курс
+          description: Выберите курс, к которому относится урок
+        title:
+          type: string
+          minLength: 1
+          title: Название урока
+          description: Укажите название урока
+          maxLength: 200
+        description:
+          type: string
+          minLength: 1
+          title: Описание урока
+          description: Подробное описание урока
+        preview:
+          type: string
+          format: binary
+          nullable: true
+          title: Превью урока
+          description: Загрузите изображение для превью урока
+        video_url:
+          type: string
+          format: uri
+          minLength: 1
+          maxLength: 500
+    PatchedPaymentRequest:
+      type: object
+      description: |-
+        Сериализатор для модели Payment.
+
+        Валидирует, что указан либо курс, либо урок (минимум одно обязательно).
+      properties:
+        owner:
+          type: integer
+          title: Владелец платежа
+          description: Пользователь, совершивший платёж
+        course:
+          type: integer
+          nullable: true
+          title: Оплаченный курс
+          description: Курс, за который произведена оплата
+        lesson:
+          type: integer
+          nullable: true
+          title: Оплаченный урок
+          description: Урок, за который произведена оплата
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: Сумма оплаты
+          description: Сумма платежа в рублях
+        payment_method:
+          allOf:
+          - $ref: '#/components/schemas/PaymentMethodEnum'
+          title: Способ оплаты
+          description: |-
+            Выберите способ оплаты
+
+            * `cash` - Наличные
+            * `transfer` - Перевод на счёт
+            * `stripe` - Оплата через Stripe
+    PatchedUserDetailRequest:
+      type: object
+      description: |-
+        Детальный сериализатор для модели User.
+
+        Используется для управления собственным профилем.
+        Включает все данные, включая платежи.
+        Согласно Дополнительному заданию.
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          title: Почта
+          description: Укажите почту
+          maxLength: 254
+        first_name:
+          type: string
+          title: Имя
+          maxLength: 150
+        last_name:
+          type: string
+          title: Фамилия
+          maxLength: 150
+        phone:
+          type: string
+          nullable: true
+          title: Телефон
+          description: Укажите телефон
+          maxLength: 35
+        city:
+          type: string
+          nullable: true
+          title: Город
+          description: Укажите город
+          maxLength: 50
+        avatar:
+          type: string
+          format: binary
+          nullable: true
+          title: Загрузите аватар
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+    Payment:
+      type: object
+      description: |-
+        Сериализатор для модели Payment.
+
+        Валидирует, что указан либо курс, либо урок (минимум одно обязательно).
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        owner:
+          type: integer
+          title: Владелец платежа
+          description: Пользователь, совершивший платёж
+        payment_date:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата оплаты
+          description: Дата и время совершения платежа
+        course:
+          type: integer
+          nullable: true
+          title: Оплаченный курс
+          description: Курс, за который произведена оплата
+        lesson:
+          type: integer
+          nullable: true
+          title: Оплаченный урок
+          description: Урок, за который произведена оплата
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: Сумма оплаты
+          description: Сумма платежа в рублях
+        payment_method:
+          allOf:
+          - $ref: '#/components/schemas/PaymentMethodEnum'
+          title: Способ оплаты
+          description: |-
+            Выберите способ оплаты
+
+            * `cash` - Наличные
+            * `transfer` - Перевод на счёт
+            * `stripe` - Оплата через Stripe
+        payment_link:
+          type: string
+          format: uri
+          readOnly: true
+          nullable: true
+          title: Ссылка на оплату
+          description: Ссылка на страницу оплаты Stripe
+        stripe_session_id:
+          type: string
+          readOnly: true
+          nullable: true
+          title: ID сессии Stripe
+          description: Идентификатор платежной сессии Stripe
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата создания
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата обновления
+      required:
+      - amount
+      - created_at
+      - id
+      - owner
+      - payment_date
+      - payment_link
+      - payment_method
+      - stripe_session_id
+      - updated_at
+    PaymentMethodEnum:
+      enum:
+      - cash
+      - transfer
+      - stripe
+      type: string
+      description: |-
+        * `cash` - Наличные
+        * `transfer` - Перевод на счёт
+        * `stripe` - Оплата через Stripe
+    PaymentRequest:
+      type: object
+      description: |-
+        Сериализатор для модели Payment.
+
+        Валидирует, что указан либо курс, либо урок (минимум одно обязательно).
+      properties:
+        owner:
+          type: integer
+          title: Владелец платежа
+          description: Пользователь, совершивший платёж
+        course:
+          type: integer
+          nullable: true
+          title: Оплаченный курс
+          description: Курс, за который произведена оплата
+        lesson:
+          type: integer
+          nullable: true
+          title: Оплаченный урок
+          description: Урок, за который произведена оплата
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: Сумма оплаты
+          description: Сумма платежа в рублях
+        payment_method:
+          allOf:
+          - $ref: '#/components/schemas/PaymentMethodEnum'
+          title: Способ оплаты
+          description: |-
+            Выберите способ оплаты
+
+            * `cash` - Наличные
+            * `transfer` - Перевод на счёт
+            * `stripe` - Оплата через Stripe
+      required:
+      - amount
+      - owner
+      - payment_method
+    PublicUser:
+      type: object
+      description: |-
+        Публичный сериализатор для модели User.
+
+        Используется для отображения профиля любого пользователя.
+        Скрывает приватные данные: пароль, last_name, платежи.
+        Согласно Дополнительному заданию.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+          title: Почта
+          description: Укажите почту
+        first_name:
+          type: string
+          readOnly: true
+          title: Имя
+        phone:
+          type: string
+          readOnly: true
+          nullable: true
+          title: Телефон
+          description: Укажите телефон
+        city:
+          type: string
+          readOnly: true
+          nullable: true
+          title: Город
+          description: Укажите город
+        avatar:
+          type: string
+          format: uri
+          readOnly: true
+          nullable: true
+          title: Загрузите аватар
+      required:
+      - avatar
+      - city
+      - email
+      - first_name
+      - id
+      - phone
+    Register:
+      type: object
+      description: |-
+        Сериализатор для регистрации нового пользователя.
+
+        Требует email и password, дополнительно может принимать другие поля модели User.
+        Хеширует пароль перед сохранением.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          title: Почта
+          description: Укажите почту
+          maxLength: 254
+        first_name:
+          type: string
+          title: Имя
+          maxLength: 150
+        last_name:
+          type: string
+          title: Фамилия
+          maxLength: 150
+        phone:
+          type: string
+          nullable: true
+          title: Телефон
+          description: Укажите телефон
+          maxLength: 35
+        city:
+          type: string
+          nullable: true
+          title: Город
+          description: Укажите город
+          maxLength: 50
+      required:
+      - email
+      - id
+    RegisterRequest:
+      type: object
+      description: |-
+        Сериализатор для регистрации нового пользователя.
+
+        Требует email и password, дополнительно может принимать другие поля модели User.
+        Хеширует пароль перед сохранением.
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          title: Почта
+          description: Укажите почту
+          maxLength: 254
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password_confirm:
+          type: string
+          writeOnly: true
+          minLength: 1
+        first_name:
+          type: string
+          title: Имя
+          maxLength: 150
+        last_name:
+          type: string
+          title: Фамилия
+          maxLength: 150
+        phone:
+          type: string
+          nullable: true
+          title: Телефон
+          description: Укажите телефон
+          maxLength: 35
+        city:
+          type: string
+          nullable: true
+          title: Город
+          description: Укажите город
+          maxLength: 50
+      required:
+      - email
+      - password
+      - password_confirm
+    TokenObtainPair:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          readOnly: true
+      required:
+      - access
+      - refresh
+    TokenObtainPairRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - password
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+      required:
+      - access
+    TokenRefreshRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - refresh
+    TokenVerifyRequest:
+      type: object
+      properties:
+        token:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - token
+    UserDetail:
+      type: object
+      description: |-
+        Детальный сериализатор для модели User.
+
+        Используется для управления собственным профилем.
+        Включает все данные, включая платежи.
+        Согласно Дополнительному заданию.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          title: Почта
+          description: Укажите почту
+          maxLength: 254
+        first_name:
+          type: string
+          title: Имя
+          maxLength: 150
+        last_name:
+          type: string
+          title: Фамилия
+          maxLength: 150
+        phone:
+          type: string
+          nullable: true
+          title: Телефон
+          description: Укажите телефон
+          maxLength: 35
+        city:
+          type: string
+          nullable: true
+          title: Город
+          description: Укажите город
+          maxLength: 50
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+          title: Загрузите аватар
+        payments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Payment'
+          readOnly: true
+      required:
+      - email
+      - id
+      - payments
+    UserDetailRequest:
+      type: object
+      description: |-
+        Детальный сериализатор для модели User.
+
+        Используется для управления собственным профилем.
+        Включает все данные, включая платежи.
+        Согласно Дополнительному заданию.
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          title: Почта
+          description: Укажите почту
+          maxLength: 254
+        first_name:
+          type: string
+          title: Имя
+          maxLength: 150
+        last_name:
+          type: string
+          title: Фамилия
+          maxLength: 150
+        phone:
+          type: string
+          nullable: true
+          title: Телефон
+          description: Укажите телефон
+          maxLength: 35
+        city:
+          type: string
+          nullable: true
+          title: Город
+          description: Укажите город
+          maxLength: 50
+        avatar:
+          type: string
+          format: binary
+          nullable: true
+          title: Загрузите аватар
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

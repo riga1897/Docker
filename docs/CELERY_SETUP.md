@@ -11,7 +11,7 @@
 
 ### Архитектура
 
-- **config/celery.py**: Конфигурация Celery приложения с solo pool для Windows compatibility
+- **config/celery.py**: Конфигурация Celery приложения
 - **lms/tasks.py**: Email рассылка при обновлении курсов
 - **users/tasks.py**: Периодическая блокировка неактивных пользователей
 - **lms/services.py**: Бизнес-логика email рассылки
@@ -29,23 +29,28 @@ Celery требует:
 
 Для работы с асинхронными задачами требуется запустить несколько процессов.
 
-### Локальная разработка
+### Development/Staging окружение
 
-Требуется **4 отдельных терминала** (или используйте процесс-менеджер типа `supervisor`):
+Требуется **4 отдельных терминала** (или используйте процесс-менеджер типа `supervisor`, `systemd` или Docker Compose):
 
 ### Терминал 1: Redis
 
-**Вариант 1: Локальный redis-server (рекомендуется)**
+**Вариант 1: Локальный redis-server (рекомендуется для development)**
 
-Если Redis установлен локально (через WSL, Memurai или нативную сборку):
+Если Redis установлен локально:
 
 ```bash
 redis-server
 ```
 
+> **Примечание**: Установка Redis зависит от ОС:
+> - **Linux**: `sudo apt install redis-server` (Ubuntu/Debian) или `sudo yum install redis` (CentOS/RHEL)
+> - **macOS**: `brew install redis`
+> - **Windows**: Используйте WSL2 с Linux-версией Redis, Memurai или Docker
+
 **Вариант 2: Docker**
 
-Если используете Docker:
+Если используете Docker (универсальное решение для всех ОС):
 
 ```bash
 docker run -p 6379:6379 redis:alpine
@@ -56,14 +61,15 @@ docker run -p 6379:6379 redis:alpine
 ### Терминал 2: Celery Worker
 
 ```bash
-# Для Windows
-poetry run celery -A config worker --pool=solo -l info
-
-# Для Linux/macOS
 poetry run celery -A config worker -l info
 ```
 
-**Важно для Windows**: Флаг `--pool=solo` обязателен! Это предотвращает ошибки с `DatabaseWrapper` при использовании eventlet/gevent.
+> **Примечание для Windows**: Если возникают ошибки с `DatabaseWrapper` или многопоточностью, используйте флаг `--pool=solo`:
+> ```bash
+> poetry run celery -A config worker --pool=solo -l info
+> ```
+> 
+> Это ограничение связано с особенностями работы eventlet/gevent на Windows и не требуется для Unix-систем.
 
 ### Терминал 3: Celery Beat
 
@@ -102,8 +108,9 @@ CELERY_BEAT_SCHEDULE = {
 ```
 
 **Подключение:**
-- Используется Redis на `localhost:6379`
-- Для production настройте удалённый Redis сервер через переменную окружения `CELERY_BROKER_URL`
+- По умолчанию используется локальный Redis на `localhost:6379` для development окружения
+- Для production/staging настройте удалённый Redis сервер через переменную окружения `CELERY_BROKER_URL`
+- Для staging окружения рекомендуется использовать отдельный экземпляр Redis или отдельную базу данных Redis (например, `/1` вместо `/0`)
 
 ## Асинхронные задачи
 
@@ -199,13 +206,22 @@ assert user.is_active == False
 
 ## Email Backend
 
-Проект использует **console email backend** для разработки:
+Проект использует **console email backend** для development окружения:
 
 ```python
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 ```
 
-Все email отображаются в консоли Django server. Для production используйте SMTP backend.
+Все email отображаются в консоли Django сервера. Для production/staging окружений настройте SMTP backend:
+
+```python
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.example.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = "your-email@example.com"
+EMAIL_HOST_PASSWORD = "your-password"
+```
 
 ## Мониторинг
 
@@ -231,29 +247,39 @@ Celery beat показывает расписание периодических
 
 ## Troubleshooting
 
-### Windows: `DatabaseWrapper objects created in a thread can only be used in that same thread`
+### `DatabaseWrapper objects created in a thread can only be used in that same thread`
+
+**Проблема**: Ошибка многопоточности при работе с базой данных (обычно на Windows)
 
 **Решение**: Используйте `--pool=solo` для celery worker:
 ```bash
-celery -A config worker --pool=solo -l info
+poetry run celery -A config worker --pool=solo -l info
 ```
+
+> **Примечание**: Эта проблема характерна для Windows из-за ограничений работы с eventlet/gevent. На Linux/macOS обычно не требуется.
 
 ### Redis connection refused
 
-**Проблема**: Redis не доступен
+**Проблема**: Redis не доступен или не запущен
 
 **Решение**: 
-- Запустите Redis через `redis-server`, Docker или WSL
-- Проверьте, что Redis слушает на порту 6379
+- Убедитесь, что Redis запущен: `redis-cli ping` (должен вернуть `PONG`)
+- Проверьте, что Redis слушает на порту 6379: `netstat -an | grep 6379` (Linux/macOS) или `netstat -an | findstr 6379` (Windows)
+- Запустите Redis через `redis-server`, Docker или используйте системный сервис:
+  - **Linux**: `sudo systemctl start redis`
+  - **macOS**: `brew services start redis`
+  - **Windows**: Используйте Docker или WSL2
 
 ### Задачи не выполняются
 
-**Проблема**: Celery worker не запущен
+**Проблема**: Celery worker не запущен или не подключен к broker
 
 **Решение**:
-- Проверьте, что worker запущен и показывает `ready`
-- Проверьте логи worker на ошибки
-- Убедитесь, что Redis доступен
+- Проверьте, что worker запущен и показывает `ready` в логах
+- Проверьте логи worker на ошибки подключения
+- Убедитесь, что Redis доступен и worker успешно подключился к broker
+- Проверьте, что переменная `CELERY_BROKER_URL` указывает на правильный адрес Redis
+- В staging/production убедитесь, что firewall правила разрешают подключение к Redis
 
 ### Email не отправляются
 

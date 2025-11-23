@@ -6,7 +6,6 @@
 - Функции для управления пользователями (блокировка неактивных)
 """
 
-import os
 from datetime import timedelta
 from decimal import Decimal
 from typing import TYPE_CHECKING, cast
@@ -15,6 +14,8 @@ import stripe
 from django.conf import settings
 from django.db.models import QuerySet
 from django.utils import timezone
+
+from config.utils import build_url
 
 if TYPE_CHECKING:
     from lms.models import Course, Lesson
@@ -116,10 +117,7 @@ def get_stripe_success_url() -> str:
     Returns:
         str: URL для редиректа после успешной оплаты
     """
-    domain = os.getenv("REPLIT_DEV_DOMAIN", "localhost:8000")
-    if "localhost" in domain:
-        return f"http://{domain}/api/payments/success/"
-    return f"https://{domain}/api/payments/success/"
+    return build_url("/api/payments/success/")
 
 
 def get_stripe_cancel_url() -> str:
@@ -129,10 +127,7 @@ def get_stripe_cancel_url() -> str:
     Returns:
         str: URL для редиректа при отмене оплаты
     """
-    domain = os.getenv("REPLIT_DEV_DOMAIN", "localhost:8000")
-    if "localhost" in domain:
-        return f"http://{domain}/api/payments/cancel/"
-    return f"https://{domain}/api/payments/cancel/"
+    return build_url("/api/payments/cancel/")
 
 
 def get_inactive_users(days: int | None = None) -> QuerySet["User"]:

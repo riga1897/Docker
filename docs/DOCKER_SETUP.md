@@ -1,7 +1,7 @@
 # 🐳 Docker Development Setup
 
-**Версия:** 1.0
-**Последнее обновление:** 18 ноября 2025
+**Версия:** 1.1  
+**Последнее обновление:** 23 ноября 2025
 
 ## 📋 Содержание
 
@@ -22,13 +22,13 @@
 
 ## Обзор
 
-Проект LMS использует **Docker Compose** для локальной разработки, обеспечивая изолированное окружение со всеми необходимыми сервисами.
+Проект LMS использует **Docker Compose** для разработки, обеспечивая изолированное окружение со всеми необходимыми сервисами.
 
 ### Ключевые особенности
 
 - **5 сервисов**: Django Web, PostgreSQL, Redis, Celery Worker, Celery Beat
-- **Development конфигурация**: Django runserver, DEBUG=True
-- **Единый .env файл**: работает для локальной и Docker разработки
+- **Development/Staging конфигурация**: Django runserver, DEBUG=True
+- **Единый .env файл**: работает для разных окружений разработки
 - **Автоматические миграции**: применяются через entrypoint script
 - **Health checks**: мониторинг состояния всех сервисов
 - **Named volumes**: персистентность данных PostgreSQL и media файлов
@@ -41,7 +41,7 @@
 - Нужна полная изоляция от системных пакетов
 - Подготовка к production deployment
 
-❌ **Используйте локальную разработку когда:**
+❌ **Используйте разработку вне Docker когда:**
 - Быстрая итерация и debugging
 - Работаете только с Django (без Celery)
 - Ограниченные ресурсы системы
@@ -148,31 +148,29 @@
 
 ### Установка Docker
 
-**Windows:**
-1. Скачайте [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop)
-2. Запустите установщик
-3. Перезагрузите компьютер
-4. Проверьте: `docker --version` и `docker-compose --version`
+Установите Docker Desktop (Windows/macOS) или Docker Engine (Linux) следуя официальной документации для вашей платформы:
 
-**macOS:**
-1. Скачайте [Docker Desktop for Mac](https://www.docker.com/products/docker-desktop)
-2. Перетащите в Applications
-3. Запустите Docker Desktop
-4. Проверьте: `docker --version` и `docker-compose --version`
+**Docker Desktop (Windows/macOS):**
+1. Скачайте [Docker Desktop](https://www.docker.com/products/docker-desktop)
+2. Запустите установщик и следуйте инструкциям
+3. Перезагрузите систему при необходимости
+4. Проверьте установку: `docker --version` и `docker-compose --version`
 
-**Linux (Ubuntu/Debian):**
+**Docker Engine (Linux):**
 ```bash
-# Установка Docker Engine
+# Установка Docker Engine (пример для Ubuntu/Debian)
 sudo apt-get update
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin
 
 # Добавление пользователя в группу docker
 sudo usermod -aG docker $USER
 
-# Проверка
+# Проверка установки
 docker --version
 docker compose version
 ```
+
+> **Примечание**: Для других дистрибутивов Linux см. [официальную документацию Docker](https://docs.docker.com/engine/install/).
 
 ### Минимальные требования
 
@@ -197,13 +195,13 @@ cd lms-project
 # Скопируйте шаблон .env
 cp .env.example .env
 
-# Убедитесь, что настройки для localhost (для локальной разработки)
+# Убедитесь, что настройки указывают на localhost (для разработки вне Docker)
 # Docker Compose автоматически переопределит хосты для контейнеров
 ```
 
 **Важные переменные в .env:**
 ```env
-POSTGRES_HOST=localhost      # Для локальной разработки
+POSTGRES_HOST=localhost      # Для разработки вне Docker
 REDIS_URL=redis://localhost:6379/0
 CELERY_BROKER_URL=redis://localhost:6379/0
 CELERY_RESULT_BACKEND=redis://localhost:6379/0
@@ -250,7 +248,7 @@ docker-compose exec web python manage.py createsuperuser
 
 Проект использует **двухуровневую систему** переменных окружения:
 
-1. **`.env` файл** — базовые настройки для локальной разработки (localhost)
+1. **`.env` файл** — базовые настройки для разработки вне Docker (localhost)
 2. **`docker-compose.yaml`** — переопределяет хосты для Docker контейнеров
 
 ### Переменные в .env
@@ -267,7 +265,7 @@ ALLOWED_HOSTS=localhost,127.0.0.1
 POSTGRES_DB=lms_db
 POSTGRES_USER=lms_user
 POSTGRES_PASSWORD=lms_password
-POSTGRES_HOST=localhost          # ← для локальной разработки
+POSTGRES_HOST=localhost          # ← для разработки вне Docker
 POSTGRES_PORT=5432
 ```
 
@@ -308,7 +306,7 @@ environment:
 
 ### Как это работает
 
-1. **Локальная разработка** (без Docker):
+1. **Разработка вне Docker** (нативное окружение):
    - `config/settings.py` читает переменные из `.env`
    - Использует `localhost` для PostgreSQL и Redis
 
@@ -577,7 +575,7 @@ docker-compose exec web poetry run fix   # Автоформатирование
 docker-compose exec web poetry run check # Полная проверка кода
 ```
 
-**Примечание:**
+**Примечание:** 
 - Poetry доступен в runtime контейнере для поддержки dev workflow
 - Флаг `--no-cov` отключает pytest-cov для избежания конфликта с coverage.py
 - Pytest cache хранится в `/tmp/.pytest_cache` (не засоряет проект, автоочистка при перезапуске)
@@ -585,7 +583,7 @@ docker-compose exec web poetry run check # Полная проверка код�
 **Ожидаемый результат:**
 ```
 Tests: 265 passed
-Coverage: 87.68%
+Coverage: 98.22%
 ```
 
 ### Использование скрипта
@@ -734,7 +732,7 @@ lsof -i :6379
 # Остановка конфликтующих процессов
 kill -9 <PID>
 
-# Или изменить порты в docker-compose.yml
+# Или изменить порты в docker-compose.yaml
 ports:
   - "8001:8000"  # Вместо 8000:8000
 ```
@@ -823,7 +821,7 @@ docker-compose restart celery_worker
 
 ---
 
-### Проблема: Медленная работа Docker на Windows
+### Проблема: Медленная работа Docker
 
 **Симптомы:**
 - Долгая сборка образов
@@ -831,17 +829,20 @@ docker-compose restart celery_worker
 
 **Решение:**
 ```bash
-# 1. Включить WSL 2 backend в Docker Desktop
-# Settings → General → Use WSL 2 based engine
-
-# 2. Выделить больше ресурсов
+# 1. Выделить больше ресурсов в Docker Desktop
 # Settings → Resources → Adjust CPU/Memory
 
-# 3. Исключить volumes из антивируса
-# Add Docker volumes to exclusions
+# 2. Для Windows: включить WSL 2 backend
+# Settings → General → Use WSL 2 based engine
+
+# 3. Исключить volumes из антивирусного сканирования
+# Добавить Docker volumes в исключения
 
 # 4. Использовать Docker volumes вместо bind mounts
 # (уже реализовано в проекте)
+
+# 5. Для Linux: проверить disk I/O
+# Использовать overlay2 storage driver (по умолчанию)
 ```
 
 ---
@@ -956,18 +957,18 @@ docker-compose logs | grep ERROR > logs/errors.log
 
 Проект использует **гибридную стратегию** тестирования для оптимального баланса между скоростью разработки и надёжностью:
 
-- **Локальная разработка (TDD)**: `poetry run pytest` вне Docker — быстрая итерация, мгновенная обратная связь
+- **Development (нативное окружение)**: `poetry run pytest` вне Docker — быстрая итерация, мгновенная обратная связь
 - **CI/CD pipeline**: `poetry run pytest` в runner (без Docker) — простота и скорость
-- **Docker**: финальная проверка совместимости окружения перед deployment
+- **Staging/Docker**: финальная проверка совместимости окружения перед deployment
 
 **Статистика тестов:**
 - **Django APITestCase**: 78 тестов (`lms/tests.py`, `users/tests.py`)
 - **Pytest**: 187 тестов (`tests/` папка)
-- **Всего**: 265 тестов с покрытием 87.68%
+- **Всего**: 265 тестов с покрытием 98.22%
 
-### Проблемы с правами (Windows bind mount)
+### Проблемы с правами при bind mount
 
-При запуске pytest в Docker на Windows возникают ошибки прав доступа:
+При запуске pytest в Docker могут возникать ошибки прав доступа:
 
 ```
 PermissionError: [Errno 13] Permission denied: '.pytest_cache'
@@ -975,7 +976,7 @@ PermissionError: [Errno 13] Permission denied: '.coverage'
 PermissionError: [Errno 13] Permission denied: 'htmlcov'
 ```
 
-**Причина**: Bind mount (`.:/app`) монтирует файлы с правами Windows-пользователя. Пользователь `django` в контейнере не может создавать файлы в `/app`.
+**Причина**: Bind mount (`.:/app`) может монтировать файлы с правами хост-системы, из-за чего пользователь `django` в контейнере не может создавать файлы в `/app`.
 
 **Решение**: Pytest и coverage настроены на использование `/tmp` директории (доступна для записи всем пользователям):
 
@@ -991,7 +992,7 @@ data_file = "/tmp/.coverage"
 directory = "/tmp/htmlcov"
 ```
 
-> **Примечание**: На Linux/Mac эти настройки также работают без проблем.
+> **Примечание**: Эти настройки работают на всех платформах (Linux, macOS, Windows).
 
 ### Особенности .dockerignore
 
@@ -1073,15 +1074,33 @@ docker-compose exec web bash -c "coverage run --source='users,lms,config' manage
 
 **Результат:**
 ```
-Name                        Stmts   Miss  Cover
------------------------------------------------
-users/models.py               59     8   86.44%
-users/services.py             71     5   92.96%
-lms/models.py                 43     2   95.35%
-lms/services.py               62     3   95.16%
-...
------------------------------------------------
-TOTAL                        619    76   87.68%
+Name                   Stmts   Miss   Cover   Missing
+-----------------------------------------------------
+config/celery.py           6      0 100.00%
+config/urls.py            11      0 100.00%
+config/views.py           24      0 100.00%
+lms/admin.py              14      0 100.00%
+lms/apps.py                4      0 100.00%
+lms/constants.py           3      0 100.00%
+lms/models.py             43      0 100.00%
+lms/paginators.py          5      0 100.00%
+lms/serializers.py        27      0 100.00%
+lms/services.py           62      0 100.00%
+lms/tasks.py               5      0 100.00%
+lms/urls.py                7      0 100.00%
+lms/validators.py          8      0 100.00%
+lms/views.py              62      0 100.00%
+users/admin.py            15      0 100.00%
+users/apps.py              4      0 100.00%
+users/models.py           59      0 100.00%
+users/permissions.py      37      0 100.00%
+users/serializers.py      62      0 100.00%
+users/services.py         71      3  95.77%   277-281
+users/tasks.py             5      0 100.00%
+users/urls.py              8      0 100.00%
+users/views.py            77      8  89.61%   248-253, 291, 295-296
+-----------------------------------------------------
+TOTAL                    619     11  98.22%
 ```
 
 ### Доступ к coverage отчётам
@@ -1097,17 +1116,15 @@ mkdir -p coverage-reports
 # Скопировать из контейнера
 docker cp lms_web:/tmp/htmlcov ./coverage-reports/
 
-# Открыть в браузере
-# Windows
-start coverage-reports/htmlcov/index.html
-
-# Linux/Mac
-xdg-open coverage-reports/htmlcov/index.html
+# Открыть в браузере (выберите команду для вашей платформы)
+# Windows: start coverage-reports/htmlcov/index.html
+# macOS: open coverage-reports/htmlcov/index.html
+# Linux: xdg-open coverage-reports/htmlcov/index.html
 ```
 
 ### Рекомендации
 
-#### ✅ Локальная разработка (рекомендуется для TDD)
+#### ✅ Development (нативное окружение, рекомендуется для TDD)
 
 ```bash
 # Быстрая итерация при разработке
@@ -1120,7 +1137,7 @@ poetry run pytest -k "test_create_course" --reuse-db
 - 🔧 IDE интеграция (coverage, debugging)
 - 🚀 Быстрый TDD цикл (RED-GREEN-REFACTOR)
 
-#### ✅ Docker (финальная проверка перед коммитом)
+#### ✅ Staging/Docker (финальная проверка перед коммитом)
 
 ```bash
 # Полная проверка окружения
@@ -1203,12 +1220,12 @@ directory = "/tmp/htmlcov"
 
 #### Проблема: Изменения в pyproject.toml не применяются
 
-**Причина**: Docker Desktop на Windows кэширует bind mount.
+**Причина**: Docker может кэшировать bind mount файлы.
 
 **Решение**:
 
 ```bash
-# Полная перезагрузка
+# Полная перезагрузка контейнеров
 docker-compose down
 docker-compose up -d
 
@@ -1216,7 +1233,7 @@ docker-compose up -d
 docker-compose exec web grep "cache_dir" pyproject.toml
 ```
 
-Если проблема сохраняется, перезапустите Docker Desktop.
+Если проблема сохраняется, перезапустите Docker Desktop (Windows/macOS) или Docker service (Linux).
 
 ---
 
@@ -1333,6 +1350,6 @@ services:
 
 ---
 
-**Последнее обновление:** 18 ноября 2025
-**Версия документа:** 1.0
-**Статус:** Development Setup (Production roadmap в планах)
+**Последнее обновление:** 23 ноября 2025  
+**Версия документа:** 1.1  
+**Статус:** Development/Staging Setup (Production roadmap в планах)

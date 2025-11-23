@@ -6,16 +6,18 @@
 [![Django](https://img.shields.io/badge/Django-5.2.7-green.svg)](https://www.djangoproject.com/)
 [![DRF](https://img.shields.io/badge/DRF-3.16.1-red.svg)](https://www.django-rest-framework.org/)
 [![Tests](https://img.shields.io/badge/Tests-265%20passed-success.svg)](.)
-[![Code Coverage](https://img.shields.io/badge/Coverage-87.68%25-brightgreen.svg)](.)
+[![Code Coverage](https://img.shields.io/badge/Coverage-98.22%25-brightgreen.svg)](.)
 [![Type Coverage](https://img.shields.io/badge/Type%20Coverage-100%25-success.svg)](.)
+[![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-blue.svg)](.github/workflows/ci-cd.yml)
 
 ## 📋 Описание
 
 LMS система — это backend-сервер для платформы онлайн-обучения, предоставляющий RESTful API для управления пользователями, курсами, уроками, подписками и платежами. Проект разработан с использованием современных практик разработки:
 
-- ✅ **Comprehensive Testing** — все функции покрыты тестами (**265 тестов, 87.68% покрытие**)
+- ✅ **Comprehensive Testing** — все функции покрыты тестами (**265 тестов, 98.22% покрытие**)
 - ✅ **100% Type Coverage** — полная типизация с Mypy (58 файлов)
 - ✅ **Строгие стандарты кода** — Ruff, Black, isort, Flake8
+- ✅ **CI/CD Pipeline** — автоматическое тестирование, сборка Docker образов и deployment через GitHub Actions
 - ✅ **PostgreSQL** — надежная реляционная база данных с демо-данными
 - ✅ **Email-авторизация** — современная аутентификация через email + JWT
 - ✅ **API Документация** — Swagger UI + ReDoc через drf-spectacular
@@ -531,9 +533,25 @@ DELETE /api/payments/{id}/
 
 ### Предварительные требования
 
-- Python 3.12+
+- Python 3.12+ (локальная разработка)
 - Poetry
 - PostgreSQL
+
+**Политика версий Python:**
+
+Проект использует **гибкий constraint** `python = "^3.12"` в pyproject.toml для совместимости локальной разработки:
+
+- **Локальная разработка**: Python 3.12+ (Replit использует 3.12.11)
+- **Docker/Production**: Python 3.13.5 (точная версия закреплена в Dockerfile)
+- **CI/CD тесты**: Python 3.13.5 (точная версия в GitHub Actions)
+
+**Воспроизводимость production:**
+Для полной идентичности с production окружением используйте Docker:
+```bash
+docker-compose up
+```
+
+Все зависимости совместимы с Python 3.12-3.13. Docker образ гарантирует воспроизводимость production builds.
 
 ### Установка
 
@@ -605,6 +623,39 @@ API доступен по адресу: `http://localhost:8000/api/`
 - Swagger UI: `http://localhost:8000/api/docs/`
 - ReDoc: `http://localhost:8000/api/redoc/`
 - Admin Panel: `http://localhost:8000/admin/`
+
+---
+
+## 🚀 CI/CD Pipeline
+
+Проект использует **GitHub Actions** для автоматизации тестирования, сборки и развёртывания.
+
+### Pipeline Jobs:
+
+1. **Test** — 265 тестов (Django + Pytest) с 98% coverage
+2. **Lint** — Ruff, Black, Mypy, isort, Flake8
+3. **Build & Push** — Docker образ → GitHub Container Registry
+4. **Deploy** — Автоматическое развёртывание на production
+
+### GitHub Secrets Setup:
+
+Для работы CI/CD необходимо настроить secrets в `Settings` → `Secrets and variables` → `Actions`:
+
+| Secret | Описание |
+|--------|----------|
+| `SSH_KEY` | Приватный SSH ключ для доступа к серверу |
+| `SSH_USER` | Имя пользователя SSH (например, `deploy`) |
+| `SERVER_IP` | IP-адрес production сервера |
+| `DEPLOY_DIR` | Директория на сервере (например, `/opt/lms`) |
+| `SECRET_KEY` | Django SECRET_KEY (опционально для тестов) |
+
+### Triggers:
+
+- ✅ `push` в `main` → полный pipeline + deployment
+- ✅ `push` в `develop` → test + lint (без deployment)
+- ✅ Pull Request → test + lint (без deployment)
+
+**Подробная документация:** [docs/CI_CD.md](docs/CI_CD.md)
 
 ---
 

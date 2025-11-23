@@ -56,13 +56,18 @@ media/
 # Docker
 Dockerfile
 docker-compose.yml
+docker-compose.prod.yml
 .dockerignore
 
 # Documentation
 docs/
 README.md
 DEVELOPMENT.md
+
+# Replit-specific files (не должны попадать в Docker образ)
+.replit
 replit.md
+replit.nix
 
 # CI/CD
 .github/

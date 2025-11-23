@@ -26,6 +26,11 @@ DEBUG = bool(os.getenv("DEBUG") == "True")
 
 ALLOWED_HOSTS = ["*"]
 
+# Site domain для генерации абсолютных URL
+# Используется в Stripe callbacks, email уведомлениях и других внешних интеграциях
+# Приоритет: SITE_DOMAIN (явная настройка) > REPLIT_DEV_DOMAIN (Replit) > localhost (fallback)
+SITE_DOMAIN = os.getenv("SITE_DOMAIN", os.getenv("REPLIT_DEV_DOMAIN", "localhost:8000"))
+
 
 # Application definition
 
@@ -197,7 +202,7 @@ if domains:
         if domain and f"https://{domain}" not in CSRF_TRUSTED_ORIGINS:
             CSRF_TRUSTED_ORIGINS.append(f"https://{domain}")
 
-# Дополнительные настройки CSRF для работы в iframe
+# Дополнительные настройки CSRF для работы в iframe (Replit)
 CSRF_COOKIE_SAMESITE = "None"
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SAMESITE = "None"
@@ -210,6 +215,27 @@ CSRF_TRUSTED_ORIGINS.append("https://*.pike.replit.dev")
 
 # Настройка для корректной работы SSL через прокси Replit
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# ============================================================================
+# Security Settings для Production VPS с HTTPS
+# ============================================================================
+# Эти настройки критичны для production deployment на отдельный VPS с HTTPS.
+# В .env.production.example их нужно раскомментировать и установить в True.
+#
+# ВАЖНО: Не включайте их в локальной разработке (http://localhost)!
+
+# Редирект всех HTTP запросов на HTTPS (только для production с SSL сертификатом)
+SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "False") == "True"
+
+# HTTP Strict Transport Security (HSTS) - браузер будет использовать только HTTPS
+# 31536000 секунд = 1 год
+SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "0"))
+
+# Включить HSTS для всех поддоменов
+SECURE_HSTS_INCLUDE_SUBDOMAINS = os.getenv("SECURE_HSTS_INCLUDE_SUBDOMAINS", "False") == "True"
+
+# Добавить сайт в HSTS preload list браузеров (требует HSTS на год+)
+SECURE_HSTS_PRELOAD = os.getenv("SECURE_HSTS_PRELOAD", "False") == "True"
 
 # Настройки drf-spectacular для документации API
 SPECTACULAR_SETTINGS = {
