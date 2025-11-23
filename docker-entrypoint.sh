@@ -5,6 +5,10 @@ set -e
 
 echo "=== Django LMS Docker Entrypoint ==="
 
+# Активация виртуального окружения
+export PATH="/app/.venv/bin:$PATH"
+export VIRTUAL_ENV="/app/.venv"
+
 # Ожидание готовности PostgreSQL (для web сервиса: python или gunicorn)
 if [ "$1" = "python" ] || [ "$1" = "gunicorn" ]; then
     echo "Waiting for PostgreSQL..."

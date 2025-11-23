@@ -9,7 +9,7 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    POETRY_VERSION=1.8.4 \
+    POETRY_VERSION=2.1.4 \
     POETRY_NO_INTERACTION=1 \
     POETRY_VIRTUALENVS_IN_PROJECT=true \
     POETRY_VIRTUALENVS_CREATE=true \
@@ -31,7 +31,7 @@ WORKDIR /app
 COPY pyproject.toml poetry.lock poetry.toml ./
 
 # Установка зависимостей (без dev зависимостей)
-RUN poetry install --no-dev --no-root && rm -rf $POETRY_CACHE_DIR
+RUN poetry install --only main --no-root && rm -rf $POETRY_CACHE_DIR
 
 # Стадия 2: Runtime - финальный образ
 FROM python:3.13.5-slim AS runtime
@@ -41,7 +41,7 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    POETRY_VERSION=1.8.4 \
+    POETRY_VERSION=2.1.4 \
     POETRY_NO_INTERACTION=1 \
     POETRY_VIRTUALENVS_IN_PROJECT=true \
     POETRY_VIRTUALENVS_CREATE=true \
@@ -66,12 +66,11 @@ RUN groupadd -r django && useradd -r -g django django
 WORKDIR /app
 
 # Копирование виртуального окружения из builder
-COPY --from=builder /app/.venv /app/.venv
+COPY --from=builder --chown=django:django /app/.venv /app/.venv
 
-# Копирование entrypoint и healthcheck scripts
+# Копирование entrypoint script
 COPY --chown=django:django docker-entrypoint.sh /docker-entrypoint.sh
-COPY --chown=django:django docker-healthcheck.sh /docker-healthcheck.sh
-RUN chmod +x /docker-entrypoint.sh /docker-healthcheck.sh
+RUN chmod +x /docker-entrypoint.sh
 
 # Копирование приложения
 COPY --chown=django:django . .
