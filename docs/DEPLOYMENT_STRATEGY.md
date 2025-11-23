@@ -1,26 +1,25 @@
-# Стратегия развёртывания: Development → Staging → Production
+# Стратегия развёртывания: Development → Staging → Pre-Production → Production (Gitflow)
 
-Этот документ описывает **трёхступенчатую стратегию миграции** Django LMS приложения от локальной разработки до production deployment.
+Этот документ описывает **четырёхступенчатую стратегию миграции** Django LMS приложения от локальной разработки до production deployment с использованием **Gitflow branching strategy**.
 
-**Примеры реализации:** Development (Replit), Staging (Windows + Docker Desktop), Production (VPS + GitHub Actions)
+**Примеры реализации:** Development (Replit), Staging (Windows + Docker Desktop), Pre-Production (release/* → VPS), Production (main → VPS via GitHub Actions)
 
 ---
 
 ## Обзор стратегии
 
 ```
-┌──────────────────────┐      ┌──────────────────────┐      ┌──────────────────────┐
-│  1. DEVELOPMENT      │      │  2. STAGING          │      │  3. PRODUCTION       │
-│  Среда разработки    │ ──>  │  Тестовая среда      │ ──>  │  Prod окружение      │
-│                      │      │                      │      │                      │
-│  localhost или cloud │      │  Docker + live reload│      │  Docker via CI/CD    │
-│  БЕЗ Docker          │      │  Локальная сборка    │      │  GHCR образы         │
-│  Быстрая итерация    │      │  Валидация перед     │      │  Финальный           │
-│  код + отладка       │      │  production деплой   │      │  deployment          │
-│                      │      │                      │      │                      │
-│  Пример: Replit,     │      │  Пример: Windows +   │      │  Пример: Ubuntu VPS  │
-│  VSCode, PyCharm     │      │  Docker Desktop      │      │  + GitHub Actions    │
-└──────────────────────┘      └──────────────────────┘      └──────────────────────┘
+┌───────────────────┐   ┌───────────────────┐   ┌───────────────────┐   ┌───────────────────┐
+│  1. DEVELOPMENT   │   │  2. STAGING       │   │ 3. PRE-PRODUCTION │   │  4. PRODUCTION    │
+│  Разработка       │──>│  Локальный Docker │──>│  Препрод VPS      │──>│  Финальный VPS    │
+│                   │   │                   │   │                   │   │                   │
+│  localhost/cloud  │   │  Docker Desktop   │   │  release/* branch │   │  main branch      │
+│  БЕЗ Docker       │   │  + live reload    │   │  preprod-latest   │   │  latest tag       │
+│  Быстрая итерация │   │  Локальная сборка │   │  Полный CI/CD     │   │  Финальный релиз  │
+│  feature/develop  │   │  develop ветка    │   │  + auto PR        │   │  + git tags       │
+│  Replit/VSCode/   │   │  Windows/Mac/     │   │  Ubuntu VPS +     │   │  Ubuntu VPS +     │
+│  PyCharm          │   │  Linux + Docker   │   │  GitHub Actions   │   │  GitHub Actions   │
+└───────────────────┘   └───────────────────┘   └───────────────────┘   └───────────────────┘
 ```
 
 ### Как создать .env файл для каждого окружения
@@ -29,10 +28,10 @@
 |-----------|-------------------|---------|-----------|
 | **Development** | Копирование шаблона | `cp .env.example .env` | Ручное редактирование для localhost<br>Пример: Replit, локальная разработка |
 | **Staging** | Копирование шаблона | `copy .env.docker.example .env` | Готовый шаблон с Docker service names<br>Пример: Windows/Mac/Linux + Docker Desktop |
-| **Production** | **Автоматическая генерация** | `scripts/generate-production-env.sh` | ✅ Автоматизация через GitHub Actions<br>🔑 Генерирует SECRET_KEY, POSTGRES_PASSWORD<br>🔐 Интегрирует GitHub Secrets (Stripe, SERVER_IP)<br>📋 ~25 переменных из 2 обязательных secrets |
-| **Локальное production-like тестирование** | Копирование + ручная правка | `copy .env.docker.example .env`<br>+ изменить `DEBUG=False` | Для тестирования Gunicorn до деплоя |
+| **Pre-Production** | **Автоматическая генерация** | `scripts/generate-preprod-env.sh` | ✅ Автоматизация через GitHub Actions (release/*)<br>🔑 Генерирует SECRET_KEY, POSTGRES_PASSWORD<br>🔐 Интегрирует PREPROD_* GitHub Secrets<br>🧪 Stripe TEST keys для препрода |
+| **Production** | **Автоматическая генерация** | `scripts/generate-production-env.sh` | ✅ Автоматизация через GitHub Actions (main)<br>🔑 Генерирует SECRET_KEY, POSTGRES_PASSWORD<br>🔐 Интегрирует GitHub Secrets (Stripe, SERVER_IP)<br>📋 ~25 переменных из обязательных secrets |
 
-**🚀 Ключевое отличие:** Production использует **автогенерацию** вместо ручного копирования шаблонов, что устраняет ошибки конфигурации и обеспечивает безопасность.
+**🚀 Ключевое отличие:** Pre-Production и Production используют **автогенерацию** вместо ручного копирования шаблонов, что устраняет ошибки конфигурации и обеспечивает безопасность. Pre-Production использует `PREPROD_*` secrets и Stripe TEST keys.
 
 ---
 
@@ -168,7 +167,135 @@ docker compose exec web ls -la /app | grep replit
 
 ---
 
-## 3. Production VPS (Deployment)
+## 3. Pre-Production (Препродакшн окружение)
+
+### Назначение:
+- **Полная репетиция production deployment** перед релизом
+- Тестирование всего CI/CD pipeline на изолированном сервере
+- Валидация deployment процесса без риска для production
+- Проверка Stripe TEST keys в production-подобном окружении
+- **Финальное тестирование release веток** перед merge в main
+
+### Технологии:
+- **Окружение:** Docker на отдельном VPS (Ubuntu/Debian)
+- **Изоляция:** Полностью отдельный сервер от production
+- **БД:** PostgreSQL 16 в Docker (изолированная от production)
+- **Redis:** Redis 7 в Docker
+- **Сервер:** Gunicorn (как в production)
+- **Git Strategy:** Gitflow с release ветками
+- **Триггер:** Push в `release/*` branches
+- **Docker tag:** `preprod-latest`
+
+### Конфигурация:
+**Файл:** `.env` на препрод VPS (автоматически генерируется через `scripts/generate-preprod-env.sh`)
+
+```env
+# Pre-Production настройки
+DEBUG=False
+SECRET_KEY=<сгенерированный ключ>
+ALLOWED_HOSTS=<IP препрод VPS>
+
+# Docker service names (как в production)
+POSTGRES_HOST=db
+REDIS_URL=redis://redis:6379/0
+CELERY_BROKER_URL=redis://redis:6379/0
+
+# Pre-Production credentials
+POSTGRES_PASSWORD=<безопасный пароль>
+STRIPE_SECRET_KEY=sk_test_<тестовый ключ>  # TEST keys!
+STRIPE_PUBLISHABLE_KEY=pk_test_<тестовый ключ>
+```
+
+### Gitflow Workflow для Pre-Production:
+
+```bash
+# 1. Создание release ветки из develop
+git checkout -b release/v1.0 develop
+git push origin release/v1.0
+
+# 2. CI/CD автоматически:
+#    - Запускает тесты (283 теста)
+#    - Code quality проверки (ruff, mypy, black, isort, flake8)
+#    - Собирает Docker образ (preprod-latest)
+#    - Деплоит на preprod VPS
+#    - Проверяет health check
+#    - Создаёт draft PR: release/v1.0 → main
+
+# 3. Тестирование на препроде
+# Открыть http://<PREPROD_IP>:8000/api/
+
+# 4. Если всё ОК — merge в main через PR
+# Или через CLI:
+git checkout main
+git merge release/v1.0
+git push origin main
+# → Автоматический production deployment
+```
+
+### Deployment через GitHub Actions (release/* branches):
+```yaml
+# Автоматический workflow при push в release/*:
+1. Push в release/* → Trigger CI/CD
+2. Запуск тестов (283 теста)
+3. Code quality проверки (ruff, mypy, black, isort, flake8)
+4. Сборка Docker образа с тегом preprod-latest
+5. Push в GitHub Container Registry (GHCR)
+6. Deployment на препрод VPS:
+   - Генерация .env через generate-preprod-env.sh
+   - Pull образа ghcr.io/${REPO}:preprod-latest
+   - docker compose -f docker-compose.prod.yml up -d
+   - Health checks на PREPROD_SERVER_IP:8000
+7. Автоматическое создание draft PR: release/* → main
+```
+
+### GitHub Secrets для препрода:
+```
+PREPROD_SERVER_IP         - IP адрес препрод сервера
+PREPROD_SSH_USER          - SSH пользователь
+PREPROD_SSH_KEY           - Приватный SSH ключ
+PREPROD_DEPLOY_DIR        - Директория деплоя (/opt/lms-preprod)
+PREPROD_STRIPE_SECRET_KEY - Stripe TEST secret key
+PREPROD_STRIPE_PUBLISHABLE_KEY - Stripe TEST publishable key
+```
+
+### Особенности:
+- ✅ **Изоляция от production** — отдельный VPS, БД, secrets
+- ✅ **Полный CI/CD тест** — все этапы как в production
+- ✅ **Stripe TEST keys** — безопасное тестирование платежей
+- ✅ **preprod-latest tag** — отдельный Docker образ для препрода
+- ✅ **Gunicorn** — реальный production сервер
+- ✅ **DEBUG=False** — production настройки
+- ✅ **Auto-restart** — `restart: unless-stopped`
+- ✅ **Zero-configuration VPS** — автоматическая установка Docker и зависимостей
+- ✅ **Automatic PR creation** — draft PR создаётся после успешного preprod deployment
+
+### Gitflow Workflow (полный цикл):
+```
+feature/* → develop (разработка)
+              ↓
+develop → release/v1.0 (создание релиза)
+              ↓
+          deploy-preprod → Препрод VPS
+              ↓
+       Тестирование + Автоматический draft PR
+              ↓
+release/v1.0 → main (ручной merge после тестирования)
+              ↓
+          deploy-prod → Production VPS
+              ↓
+release/v1.0 → develop (backmerge изменений)
+```
+
+### Когда использовать:
+- После завершения фичи перед merge в main
+- Для тестирования критичных изменений
+- Проверка deployment процесса
+- Валидация Stripe интеграции с TEST keys
+- QA тестирование в production-подобной среде
+
+---
+
+## 4. Production VPS (Deployment)
 
 ### Назначение:
 - Финальное окружение для реальных пользователей
@@ -230,6 +357,36 @@ STRIPE_SECRET_KEY=sk_live_<production key>
 - ✅ **Host volumes** — `/opt/lms/` для persistence
 - ✅ **Health checks** — автоматическая проверка работоспособности
 - ✅ **Auto-restart** — `restart: unless-stopped`
+- ✅ **Zero-configuration VPS** — автоматическая установка Docker и зависимостей
+
+### Zero-Configuration VPS Setup:
+
+CI/CD pipeline автоматически настраивает чистый VPS при первом деплое:
+
+**Что устанавливается автоматически:**
+1. **Docker CE** — если не установлен, добавляется официальный репозиторий и устанавливается
+2. **Docker Compose v2** — plugin для `docker compose` команды
+3. **Deployment директория** — `/opt/lms` с правильными правами доступа
+4. **Поддиректории** — `media/`, `staticfiles/`, `logs/`, `postgres-data/`
+
+**Идемпотентность:**
+- Скрипт проверяет наличие зависимостей перед установкой
+- Повторные запуски не дублируют установку
+- Первый деплой: ~2-3 минуты (установка Docker)
+- Последующие деплои: ~30-60 секунд (только pull + restart)
+
+**Требования к VPS:**
+- Ubuntu 20.04/22.04 или Debian 11/12
+- SSH доступ с публичным ключом
+- `sudo` права для пользователя
+- Минимум 1GB RAM, 10GB диск
+
+**Ручная настройка (единоразово):**
+1. Создать VPS с Ubuntu
+2. Добавить SSH публичный ключ
+3. Настроить GitHub Secrets (SSH_KEY, SSH_USER, SERVER_IP, etc.)
+
+**После этого всё автоматически** при `git push origin main` 🚀
 
 ### Когда происходит:
 - Автоматически при merge в `main`
@@ -240,21 +397,23 @@ STRIPE_SECRET_KEY=sk_live_<production key>
 
 ## Сравнение окружений
 
-| Параметр | Development | Staging | Production |
-|----------|-------------|---------|------------|
-| **Примеры** | Replit, VSCode, PyCharm | Windows/Mac/Linux + Docker | Ubuntu VPS + CI/CD |
-| **Docker** | ❌ Нет (опционально) | ✅ Да | ✅ Да |
-| **Хосты БД/Redis** | localhost | db, redis | db, redis |
-| **Live reload** | ✅ Да | ✅ Да | ❌ Нет |
-| **DEBUG** | True | True | False |
-| **Сервер** | runserver | runserver | Gunicorn |
-| **Порт** | 5000 (пример) | 8000 | 8000 |
-| **Сборка образа** | N/A | Локальная (build: .) | GHCR pull |
-| **Назначение** | Разработка | Тестирование | Деплой |
-| **.env файл** | .env.example | .env.docker.example | автогенерация через скрипт |
-| **Celery** | Локальный или Docker | Docker контейнер | Docker контейнер |
-| **Volumes** | Локальные файлы | Именованные volumes | Host paths (/opt/lms/) |
-| **CI/CD** | ❌ Нет | ❌ Нет | ✅ GitHub Actions |
+| Параметр | Development | Staging | Pre-Production | Production |
+|----------|-------------|---------|----------------|------------|
+| **Примеры** | Replit, VSCode, PyCharm | Windows/Mac/Linux + Docker | Ubuntu VPS (release/*) | Ubuntu VPS (main) |
+| **Docker** | ❌ Нет (опционально) | ✅ Да | ✅ Да | ✅ Да |
+| **Хосты БД/Redis** | localhost | db, redis | db, redis | db, redis |
+| **Live reload** | ✅ Да | ✅ Да | ❌ Нет | ❌ Нет |
+| **DEBUG** | True | True | False | False |
+| **Сервер** | runserver | runserver | Gunicorn | Gunicorn |
+| **Порт** | 5000 (пример) | 8000 | 8000 | 8000 |
+| **Docker tag** | N/A | local build | preprod-latest | latest |
+| **Сборка образа** | N/A | Локальная (build: .) | GHCR pull | GHCR pull |
+| **Stripe keys** | TEST | TEST | TEST | LIVE |
+| **CI/CD** | ❌ Нет | ❌ Нет | ✅ Да (release/*) | ✅ Да (main) |
+| **.env файл** | .env.example | .env.docker.example | generate-preprod-env.sh | generate-production-env.sh |
+| **Celery** | Локальный или Docker | Docker контейнер | Docker контейнер | Docker контейнер |
+| **Volumes** | Локальные файлы | Именованные volumes | Host paths (/opt/lms-preprod) | Host paths (/opt/lms) |
+| **Назначение** | Разработка | Локальный Docker тест | Препрод тест CI/CD | Финальный релиз |
 
 ---
 

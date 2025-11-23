@@ -90,6 +90,16 @@ class Lesson(BaseModel):
 - ✅ **265 тестов** - все проходят (78 Django APITestCase + 187 pytest, coverage 87.68%)
 - ✅ **Django Fixtures** для тестовых данных
 - ✅ **Dual Testing Strategy** - API тесты в app folders, unit/integration тесты в tests/
+- ✅ **Git Branching Strategy** - Gitflow с release ветками для структурированных релизов
+- ✅ **CI/CD Pipeline** - GitHub Actions с автоматическим deployment и созданием PR
+- ✅ **Четырёхуровневая архитектура deployment:**
+  - Development (локальная разработка, port 5000)
+  - Staging (Docker Desktop, port 8000, live reload)
+  - Pre-Production (release/* → VPS, port 8000, Gunicorn, TEST Stripe keys)
+  - Production (main → VPS, port 8000, Gunicorn, LIVE Stripe keys)
+- ✅ **Docker контейнеризация** - 5 сервисов (web, db, redis, celery_worker, celery_beat)
+- ✅ **Автоматическое создание PR** - после успешного preprod deployment
+- ✅ **GitHub Container Registry** - хранение Docker образов с тегами preprod-latest и latest
 
 ### Демонстрационные данные
 
@@ -121,6 +131,161 @@ python manage.py loaddata users/fixtures/payments.json # 3 платежа
 - Для быстрого старта разработки
 - Для тестирования API с реальными данными
 - Для восстановления после пересоздания БД
+
+---
+
+## Git Branching Strategy
+
+Проект использует **Gitflow** - структурированную стратегию ветвления для надёжных релизов.
+
+### Постоянные ветки
+
+| Ветка | Назначение | Deployment |
+|-------|-----------|------------|
+| `main` | Production-ready код | → Production VPS (автоматически) |
+| `develop` | Интеграция фич, активная разработка | → Staging (Docker Desktop, локально) |
+
+### Временные ветки
+
+| Префикс | Назначение | Создаётся из | Мержится в | Пример |
+|---------|-----------|--------------|------------|--------|
+| `feature/*` | Новые фичи | `develop` | `develop` | `feature/payment-integration` |
+| `release/*` | Pre-Production тестирование | `develop` | `main` + `develop` | `release/v1.0` |
+| `hotfix/*` | Срочные исправления в production | `main` | `main` + `develop` | `hotfix/critical-bug` |
+| `bugfix/*` | Исправления багов | `develop` | `develop` | `bugfix/login-error` |
+
+### Gitflow Workflow
+
+```bash
+# 1. Разработка новой фичи
+git checkout develop
+git pull origin develop
+git checkout -b feature/stripe-checkout
+# ... разработка ...
+git push origin feature/stripe-checkout
+# Создать PR: feature/stripe-checkout → develop
+
+# 2. Тестирование в Staging (Docker Desktop)
+git checkout develop
+git pull origin develop
+docker compose up  # Локальное тестирование
+
+# 3. Создание релиза для Pre-Production
+git checkout -b release/v1.0 develop
+git push origin release/v1.0
+# → CI/CD автоматически:
+#    - Собирает Docker образ (preprod-latest)
+#    - Деплоит на preprod VPS
+#    - Проверяет health check
+#    - Создаёт draft PR: release/v1.0 → main
+
+# 4. Тестирование на препроде
+# Открыть http://<PREPROD_IP>:8000/api/
+# Протестировать с TEST Stripe keys
+
+# 5. Если нашли баг на препроде
+git checkout release/v1.0
+git checkout -b bugfix/preprod-fix
+# ... исправление ...
+git checkout release/v1.0
+git merge bugfix/preprod-fix
+git push origin release/v1.0
+# → CI/CD автоматически ре-деплоит на preprod
+
+# 6. Релиз в Production (после успешного тестирования)
+# Вариант A: через GitHub UI
+#   - Открыть draft PR (создан автоматически)
+#   - Нажать "Ready for review"
+#   - Нажать "Merge Pull Request"
+# Вариант B: через командную строку
+git checkout main
+git pull origin main
+git merge release/v1.0
+git tag -a v1.0 -m "Release version 1.0"
+git push origin main --tags
+# → CI/CD автоматически деплоит на production VPS
+
+# 7. Вернуть изменения в develop
+git checkout develop
+git merge release/v1.0
+git push origin develop
+
+# 8. Удалить release ветку (опционально)
+git branch -d release/v1.0
+git push origin --delete release/v1.0
+```
+
+### Hotfix Workflow (срочные исправления в production)
+
+```bash
+# 1. Создать hotfix из main
+git checkout main
+git pull origin main
+git checkout -b hotfix/critical-security-fix
+
+# 2. Исправить баг
+# ... код ...
+git push origin hotfix/critical-security-fix
+
+# 3. Merge в main (production)
+git checkout main
+git merge hotfix/critical-security-fix
+git tag -a v1.0.1 -m "Hotfix: critical security fix"
+git push origin main --tags
+# → CI/CD автоматически деплоит на production
+
+# 4. Merge в develop (чтобы fix попал в будущие релизы)
+git checkout develop
+git merge hotfix/critical-security-fix
+git push origin develop
+
+# 5. Удалить hotfix ветку
+git branch -d hotfix/critical-security-fix
+git push origin --delete hotfix/critical-security-fix
+```
+
+### CI/CD Автоматизация
+
+| Событие | Триггер | Действия |
+|---------|---------|----------|
+| Push в `release/*` | GitHub Actions | 1. Запуск тестов (283 теста)<br>2. Code quality checks (ruff, mypy, black)<br>3. Build Docker образа (preprod-latest)<br>4. Push в GHCR<br>5. Deploy на preprod VPS<br>6. Health check<br>7. **Автоматическое создание draft PR** |
+| Merge в `main` | GitHub Actions | 1. Запуск тестов<br>2. Code quality checks<br>3. Build Docker образа (latest)<br>4. Push в GHCR<br>5. Deploy на production VPS<br>6. Health check |
+| Push в `feature/*` или `develop` | - | Нет автодеплоя (только локальная разработка) |
+
+### GitHub Secrets для CI/CD
+
+**Pre-Production:**
+- `PREPROD_SERVER_IP` - IP адрес препрод сервера
+- `PREPROD_SSH_USER` - SSH пользователь
+- `PREPROD_SSH_KEY` - Приватный SSH ключ
+- `PREPROD_DEPLOY_DIR` - Директория деплоя (`/opt/lms-preprod`)
+- `PREPROD_STRIPE_SECRET_KEY` - Stripe TEST secret key
+- `PREPROD_STRIPE_PUBLISHABLE_KEY` - Stripe TEST publishable key
+
+**Production:**
+- `SERVER_IP` - IP адрес production сервера
+- `SSH_USER` - SSH пользователь
+- `SSH_KEY` - Приватный SSH ключ
+- `DEPLOY_DIR` - Директория деплоя (`/opt/lms`)
+- `STRIPE_SECRET_KEY` - Stripe LIVE secret key
+- `STRIPE_PUBLISHABLE_KEY` - Stripe LIVE publishable key
+
+### Преимущества Gitflow
+
+✅ **Защита production** - код попадает в production только после тестирования на preprod  
+✅ **Структурированные релизы** - release ветки позволяют тестировать и фиксить перед релизом  
+✅ **Параллельная разработка** - multiple features одновременно в develop  
+✅ **Hotfix без влияния на develop** - срочные исправления не ждут завершения фич  
+✅ **Автоматизация** - CI/CD автоматически деплоит и создаёт PR  
+✅ **История релизов** - git tags отслеживают все версии  
+
+### Соглашения об именовании
+
+- Используйте lowercase с дефисами: `feature/user-authentication`
+- Включайте номер тикета (если есть): `feature/JIRA-123-payment-flow`
+- Будьте описательными: `bugfix/fix-login-timeout` вместо `bugfix/fix-bug`
+- Для release используйте версию: `release/v1.0`, `release/v1.1`
+- Для hotfix указывайте суть: `hotfix/security-patch` или `hotfix/v1.0.1`
 
 ---
 

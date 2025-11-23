@@ -32,10 +32,7 @@ def build_url(path: str) -> str:
     domain = settings.SITE_DOMAIN
 
     # Определяем localhost по наличию 'localhost' или '127.0.0.1' в домене
-    if "localhost" in domain or "127.0.0.1" in domain:
-        protocol = "http"
-    else:
-        protocol = "https"
+    protocol = "http" if "localhost" in domain or "127.0.0.1" in domain else "https"
 
     url = f"{protocol}://{domain}{path}"
 

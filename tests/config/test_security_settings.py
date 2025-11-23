@@ -8,7 +8,6 @@ security settings в config/settings.py для production VPS с HTTPS.
 import os
 from typing import Any
 
-import pytest
 from django.conf import settings
 from django.test import override_settings
 

@@ -37,9 +37,11 @@ class TestCreateSuperuserCustomCommand:
     def test_create_superuser_interactive(self) -> None:
         """Создание суперпользователя в интерактивном режиме."""
         out = StringIO()
-        with patch("builtins.input", return_value="interactive@example.com"):
-            with patch("getpass.getpass", side_effect=["password123", "password123"]):
-                call_command("create_superuser_custom", stdout=out)
+        with (
+            patch("builtins.input", return_value="interactive@example.com"),
+            patch("getpass.getpass", side_effect=["password123", "password123"]),
+        ):
+            call_command("create_superuser_custom", stdout=out)
 
         assert User.objects.filter(email="interactive@example.com").exists()
         user = User.objects.get(email="interactive@example.com")
@@ -48,23 +50,29 @@ class TestCreateSuperuserCustomCommand:
 
     def test_create_superuser_empty_email_param(self) -> None:
         """Ошибка при пустом email в интерактивном режиме."""
-        with patch("builtins.input", return_value=""):
-            with pytest.raises(CommandError, match="Email не может быть пустым"):
-                call_command("create_superuser_custom")
+        with (
+            patch("builtins.input", return_value=""),
+            pytest.raises(CommandError, match="Email не может быть пустым"),
+        ):
+            call_command("create_superuser_custom")
 
     def test_create_superuser_empty_password_param(self) -> None:
         """Ошибка при пустом пароле в интерактивном режиме."""
-        with patch("builtins.input", return_value="test@example.com"):
-            with patch("getpass.getpass", return_value=""):
-                with pytest.raises(CommandError, match="Пароль не может быть пустым"):
-                    call_command("create_superuser_custom")
+        with (
+            patch("builtins.input", return_value="test@example.com"),
+            patch("getpass.getpass", return_value=""),
+            pytest.raises(CommandError, match="Пароль не может быть пустым"),
+        ):
+            call_command("create_superuser_custom")
 
     def test_create_superuser_password_mismatch(self) -> None:
         """Ошибка при несовпадении паролей."""
-        with patch("builtins.input", return_value="test@example.com"):
-            with patch("getpass.getpass", side_effect=["password1", "password2"]):
-                with pytest.raises(CommandError, match="Пароли не совпадают"):
-                    call_command("create_superuser_custom")
+        with (
+            patch("builtins.input", return_value="test@example.com"),
+            patch("getpass.getpass", side_effect=["password1", "password2"]),
+            pytest.raises(CommandError, match="Пароли не совпадают"),
+        ):
+            call_command("create_superuser_custom")
 
     def test_create_superuser_invalid_email(self) -> None:
         """Ошибка при невалидном email."""

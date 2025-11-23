@@ -26,9 +26,6 @@ from lms.services import (
     get_course_subscribers,
     send_course_update_email,
     should_send_notification,
-    subscribe_user_to_course,
-    toggle_subscription,
-    unsubscribe_user_from_course,
 )
 from users.models import User
 

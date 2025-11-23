@@ -2,14 +2,16 @@
 
 ## Обзор
 
-Проект использует **GitHub Actions** для автоматизации тестирования, сборки Docker образов и развёртывания на production сервер. Полный pipeline запускается при каждом push/PR в ветки `main` и `develop`.
+Проект использует **GitHub Actions** для автоматизации тестирования, сборки Docker образов и развёртывания на pre-production и production серверы. Pipeline запускается при каждом push с условным выполнением build/deploy jobs для `main` (production) и `release/*` (pre-production) веток.
 
 **Pipeline включает:**
-- ✅ Автоматическое тестирование (265 тестов, 98% coverage)
+- ✅ Автоматическое тестирование (283 тестов, 98.23% coverage)
 - ✅ Code quality checks (ruff, black, mypy, isort, flake8)
 - ✅ Docker build & push в GitHub Container Registry
-- ✅ Автоматический deployment на production server
+- ✅ **Zero-configuration VPS:** автоматическая установка Docker и зависимостей
+- ✅ Автоматический deployment на pre-production (`release/*`) и production (`main`)
 - ✅ Health checks после развёртывания
+- ✅ **Автоматическое создание draft PR** после успешного preprod deployment
 
 ---
 
@@ -116,9 +118,10 @@
 2. Setup Docker Buildx (multi-platform builds support)
 3. Login в GHCR с `GITHUB_TOKEN`
 4. Извлечение metadata для tagging:
-   - `main-{SHA}` — коммит SHA с префиксом ветки
-   - `main` — имя ветки
+   - `{branch}-{SHA}` — коммит SHA с префиксом ветки
+   - `{branch}` — имя ветки
    - `latest` — только для main branch
+   - `preprod-latest` — только для release/* branches
 5. **Build & Push Docker image**:
    - Multi-stage Dockerfile (builder + runtime)
    - Gunicorn для production (не runserver)
@@ -128,13 +131,72 @@
 
 **Зависимости:** Запускается **после** успешных `test` и `lint` jobs
 
-**Условия запуска:** Только при `push` в `main` branch (не для PR)
+**Условия запуска:** Только при `push` в `main` или `release/*` branches (не для PR)
 
 **Время выполнения:** ~5-8 минут (первый раз), ~2-3 минуты (с кэшем)
 
 ---
 
-### Job 4: Deploy (Production Deployment)
+### Job 4: Deploy Pre-Production (release/* branches)
+
+**Цель:** Автоматическое развёртывание на pre-production сервер
+
+**Стек:**
+- Ubuntu Latest
+- SSH client
+- Pre-production server (Docker host)
+
+**Шаги:**
+1. Checkout кода
+2. Setup SSH agent с приватным ключом (`PREPROD_SSH_KEY` secret)
+3. **Zero-configuration VPS setup** (автоматическая установка зависимостей):
+   - Проверка и установка Docker CE (если не установлен)
+   - Проверка и установка Docker Compose v2 plugin
+   - Создание deployment директории (`/opt/lms-preprod`)
+   - Настройка прав доступа
+4. **Копирование docker-compose.prod.yml на preprod сервер**
+5. **Копирование и запуск generate-preprod-env.sh**:
+   ```bash
+   # Копирование скрипта на preprod VPS
+   scp scripts/generate-preprod-env.sh $PREPROD_SSH_USER@$PREPROD_SERVER_IP:$PREPROD_DEPLOY_DIR/
+   
+   # Запуск с передачей GitHub Secrets
+   ssh $PREPROD_SSH_USER@$PREPROD_SERVER_IP << 'EOF'
+     cd $PREPROD_DEPLOY_DIR
+     chmod +x generate-preprod-env.sh
+     
+     # Автогенерация .env (идемпотентная операция)
+     PREPROD_SERVER_IP=$PREPROD_SERVER_IP \
+     PREPROD_STRIPE_SECRET_KEY=$PREPROD_STRIPE_SECRET_KEY \
+     PREPROD_STRIPE_PUBLISHABLE_KEY=$PREPROD_STRIPE_PUBLISHABLE_KEY \
+     ./generate-preprod-env.sh
+   EOF
+   ```
+6. **SSH deployment на preprod:**
+   ```bash
+   # Логин в GHCR
+   docker login ghcr.io
+   
+   # Pull новых образов (preprod-latest)
+   docker compose -f docker-compose.prod.yml pull
+   
+   # Запуск всего стека
+   docker compose -f docker-compose.prod.yml up -d --remove-orphans
+   ```
+7. **Health check** с retry loop (12 попыток по 5 секунд)
+8. **Automatic draft PR creation:** `release/* → main` через GitHub CLI
+
+**Permissions:** `contents: write`, `pull-requests: write`
+
+**Зависимости:** Запускается **после** успешного `build-and-push` job
+
+**Условия запуска:** Только при `push` в `release/*` branches
+
+**Время выполнения:** ~2-3 минуты (или ~3-5 минут при первой установке Docker)
+
+---
+
+### Job 5: Deploy Production (main branch)
 
 **Цель:** Автоматическое развёртывание на production сервер
 
@@ -146,8 +208,13 @@
 **Шаги:**
 1. Checkout кода
 2. Setup SSH agent с приватным ключом (`SSH_KEY` secret)
-3. **Копирование docker-compose.prod.yml на сервер**
-4. **Копирование и запуск generate-production-env.sh**:
+3. **Zero-configuration VPS setup** (автоматическая установка зависимостей):
+   - Проверка и установка Docker CE (если не установлен)
+   - Проверка и установка Docker Compose v2 plugin
+   - Создание deployment директории (`/opt/lms`)
+   - Настройка прав доступа
+4. **Копирование docker-compose.prod.yml на сервер**
+5. **Копирование и запуск generate-production-env.sh**:
    ```bash
    # Копирование скрипта на VPS
    scp scripts/generate-production-env.sh $SSH_USER@$SERVER_IP:$DEPLOY_DIR/

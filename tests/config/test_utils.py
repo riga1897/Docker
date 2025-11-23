@@ -4,8 +4,6 @@
 Модуль содержит unit-тесты для функций из config/utils.py
 """
 
-import pytest
-from django.conf import settings
 from django.test import override_settings
 
 from config.utils import build_url
