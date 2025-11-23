@@ -535,19 +535,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh pr create \
-            --base main \
-            --head ${{ github.ref_name }} \
-            --title "🚀 Release ${{ github.ref_name }} → Production" \
-            --body "## Pre-Production Deployment Successful ✅
+          PR_BODY=$(cat <<'EOF'
+## Pre-Production Deployment Successful ✅
 
-**Release Branch:** \`${{ github.ref_name }}\`  
+**Release Branch:** `${{ github.ref_name }}`  
 **Pre-Production Environment:** http://${{ secrets.PREPROD_SERVER_IP }}:8000/api/
 
 ### Deployment Summary
 - ✅ All tests passed (283 tests)
 - ✅ Code quality checks passed (ruff, mypy, black, isort, flake8)
-- ✅ Docker image built: \`preprod-latest\`
+- ✅ Docker image built: `preprod-latest`
 - ✅ Deployed to pre-production VPS
 - ✅ Health check passed
 
@@ -559,7 +556,15 @@ jobs:
 
 ---
 
-**Ready for production deployment** 🎉" \
+**Ready for production deployment** 🎉
+EOF
+          )
+          
+          gh pr create \
+            --base main \
+            --head ${{ github.ref_name }} \
+            --title "🚀 Release ${{ github.ref_name }} → Production" \
+            --body "$PR_BODY" \
             --draft || echo "PR already exists or creation failed (this is expected on subsequent runs)"
 
   # ============================================================================
