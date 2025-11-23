@@ -71,6 +71,7 @@ ALLOWED_HOSTS=localhost,127.0.0.1
 ### Запуск:
 ```bash
 # Replit автоматически запускает workflow
+# Poetry 2.1.4 используется для управления зависимостями
 poetry run python manage.py runserver 0.0.0.0:5000
 ```
 

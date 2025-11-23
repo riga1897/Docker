@@ -23,7 +23,7 @@ The project is built on Django and Django REST Framework, with PostgreSQL. It fo
 ### Technical Implementations
 
 - **Core Technologies**: Python 3.12+, Django 5.2.7, Django REST Framework 3.16.1.
-- **Dependency Management**: Poetry.
+- **Dependency Management**: Poetry 2.1.4 (synchronized across all environments: Windows, Replit, Docker).
 - **Authentication**: Session Authentication (Browsable API) and JWT Authentication (`djangorestframework-simplejwt`).
 - **API Structure**: CRUD operations for Users, Courses, Lessons, Payments, and Subscriptions.
 - **Data Models**:

@@ -27,11 +27,11 @@ RUN pip install "poetry==$POETRY_VERSION"
 # Рабочая директория
 WORKDIR /app
 
-# Копирование файлов зависимостей
-COPY pyproject.toml poetry.lock poetry.toml ./
+# Копирование файлов зависимостей (poetry.lock будет создан автоматически в Linux окружении)
+COPY pyproject.toml poetry.toml ./
 
-# Установка зависимостей (без dev зависимостей)
-RUN poetry install --only main --no-root && rm -rf $POETRY_CACHE_DIR
+# Установка зависимостей (Poetry создаст lockfile в Linux окружении)
+RUN poetry install --no-root && rm -rf $POETRY_CACHE_DIR
 
 # Стадия 2: Runtime - финальный образ
 FROM python:3.13.5-slim AS runtime
