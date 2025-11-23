@@ -538,7 +538,7 @@ jobs:
           cat > /tmp/pr-body.md <<'EOF'
 ## Pre-Production Deployment Successful ✅
 
-This release branch `${{ github.ref_name }}` has been successfully deployed to pre-production environment.
+This release branch has been successfully deployed to pre-production environment.
 
 **Pre-production URL:** http://${{ secrets.PREPROD_SERVER_IP }}:8000/api/
 
