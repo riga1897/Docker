@@ -14,6 +14,7 @@ exclude =
     env,
     .env,
     migrations,
+    scripts,
     .mypy_cache,
     .pytest_cache,
     .tox,
@@ -26,7 +27,8 @@ exclude =
     docs,
     html,
     htmlcov,
-    .pythonlibs
+    .pythonlibs,
+    .local
 
 # Игнорируемые ошибки
 # E203: whitespace before ':' (конфликт с black)

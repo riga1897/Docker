@@ -4,9 +4,9 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 package-mode = false
-name = "Docker LMS"
+name = "DRF"
 version = "0.1.0"
-description = "Docker LMS"
+description = "Django REST Framework Learning Management System"
 authors = ["Ri Ga <riga1897@yandex.ru>"]
 readme = "README.md"
 
@@ -58,21 +58,7 @@ fix = "scripts.fix:main"
 
 [tool.black]
 line-length = 119
-exclude = '''
-(
-    /(
-        \.eggs
-      | \.git
-      | \.hg
-      | \.mypy_cache
-      | \.tox
-      | \.venv
-      | migrations
-      | attached_assets
-      | vehicle
-    )/
-)
-'''
+exclude = '''(^\.pythonlibs|^\.local|/(\.eggs|\.git|\.hg|\.mypy_cache|\.tox|\.venv|migrations|attached_assets|vehicle|scripts)/)'''
 
 [tool.mypy]
 python_version = "3.12"
@@ -87,6 +73,9 @@ exclude = [
     "^migrations/",
     "^attached_assets/",
     "^vehicle/",
+    "^scripts/",
+    "^\\.pythonlibs/",
+    "^\\.local/",
     "\\.venv",
     "\\.idea"
 ]
@@ -106,6 +95,7 @@ ignore_missing_imports = true
 [tool.isort]
 line_length = 119
 profile = "black"
+skip_glob = ["scripts/*", ".pythonlibs/*", ".local/*"]
 
 [tool.ruff]
 line-length = 119
@@ -121,8 +111,10 @@ exclude = [
     "migrations",
     "attached_assets",
     "vehicle",
+    "scripts",
     ".local",
     ".idea",
+    ".pythonlibs",
     "build",
     "dist",
 ]
