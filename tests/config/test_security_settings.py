@@ -72,9 +72,7 @@ class TestSecuritySettings:
         with override_settings(SECURE_HSTS_INCLUDE_SUBDOMAINS=False):
             assert settings.SECURE_HSTS_INCLUDE_SUBDOMAINS is False
 
-    def test_secure_hsts_include_subdomains_can_be_enabled(
-        self, monkeypatch: Any
-    ) -> None:
+    def test_secure_hsts_include_subdomains_can_be_enabled(self, monkeypatch: Any) -> None:
         """
         Тест: SECURE_HSTS_INCLUDE_SUBDOMAINS можно включить через env.
 

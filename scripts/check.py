@@ -1,4 +1,5 @@
 """Запуск всех проверок качества кода через Poetry."""
+
 import subprocess
 import sys
 

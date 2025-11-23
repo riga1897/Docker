@@ -1,4 +1,5 @@
 """Автоматическое исправление проблем в коде через Poetry."""
+
 import subprocess
 import sys
 
