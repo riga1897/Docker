@@ -111,6 +111,7 @@ jobs:
 
       - name: Generate coverage report
         run: |
+          poetry run coverage combine
           poetry run coverage report --fail-under=85
           poetry run coverage html
 
