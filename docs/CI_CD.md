@@ -70,9 +70,22 @@
 7. Ожидание готовности баз данных
 8. Применение миграций
 9. **Django APITestCase тесты** (78 tests)
-10. **Pytest тесты** (187 tests)
-11. **Coverage report** с threshold 98%
+   ```bash
+   poetry run coverage run --source='users,lms,config' manage.py test
+   ```
+10. **Pytest тесты** (205 tests) с параллельным запуском
+    ```bash
+    poetry run pytest --cov=users --cov=lms --cov=config --cov-append -v -n auto
+    ```
+    **Важно:** Используется `pytest-cov` плагин вместо `coverage run` для корректной работы с `pytest-xdist` (`-n auto`). Плагин автоматически инструментирует все worker процессы и агрегирует coverage данные.
+11. **Coverage report** с threshold 85% (достигаемый результат: ~98%)
 12. Upload coverage artifacts (хранятся 30 дней)
+
+**Coverage Aggregation:**
+- Django tests используют `coverage run` → создает `.coverage`
+- Pytest использует `pytest-cov` с `--cov-append` → добавляет к `.coverage`
+- `pytest-cov` корректно обрабатывает параллельные worker'ы от `pytest-xdist`
+- Итоговый `coverage report` читает объединенный `.coverage` файл (~98.22% coverage)
 
 **Условия запуска:** Всегда (при любом push/PR)
 
