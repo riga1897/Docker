@@ -754,6 +754,70 @@ docker build --progress=plain --no-cache -t lms-test .
 
 ---
 
+### Проблема: Automatic PR creation fails
+
+**Симптомы:** `gh pr create` падает с ошибками:
+- `GitHub Actions is not permitted to create or approve pull requests`
+- `No commits between main and release/*`
+- `Base ref must be a branch`
+- `Head sha can't be blank, Base sha can't be blank`
+
+**Решение:**
+
+1. **Включите разрешение для GitHub Actions:**
+   ```
+   Repository Settings → Actions → General → Workflow permissions
+   ☑️ Allow GitHub Actions to create and approve pull requests
+   ```
+   Если в организации — сначала включите на уровне organization, потом на уровне repository.
+
+2. **Переименуйте master → main (если используете master):**
+   ```bash
+   # На GitHub:
+   Settings → Branches → Default branch → Rename: master → main
+   
+   # Локально:
+   git branch -m master main
+   git fetch origin
+   git branch -u origin/main main
+   git remote set-head origin -a
+   ```
+
+3. **Добавьте полную историю в checkout:**
+   ```yaml
+   - name: Check out code
+     uses: actions/checkout@v4
+     with:
+       fetch-depth: 0  # Полная история для сравнения веток
+   ```
+
+4. **Добавьте явный fetch main перед созданием PR:**
+   ```yaml
+   - name: Fetch main branch for comparison
+     run: |
+       git fetch origin main:main
+       echo "✅ Fetched main branch for PR creation"
+
+   - name: Create Pull Request to main
+     env:
+       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+     run: |
+       gh pr create \
+         --repo ${{ github.repository }} \
+         --base main \
+         --head ${{ github.ref_name }} \
+         --title "Release to Production" \
+         --body "$(git log -1 --pretty=%B)" \
+         --draft
+   ```
+
+**Важно:** 
+- `fetch-depth: 0` скачивает полную историю, необходимую для сравнения веток
+- `git fetch origin main:main` гарантирует наличие локальной копии main branch
+- `--repo ${{ github.repository }}` явно указывает репозиторий для корректного разрешения refs
+
+---
+
 ## 📈 Оптимизация Pipeline
 
 ### Ускорение тестов:

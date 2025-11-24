@@ -4,6 +4,10 @@
 
 **Примеры реализации:** Development (Replit), Staging (Windows + Docker Desktop), Pre-Production (release/* → VPS), Production (main → VPS via GitHub Actions)
 
+**✅ Статус:** Все 4 уровня успешно развернуты и протестированы (November 24, 2025). 
+- Pre-production: `http://<PREPROD_SERVER_IP>/api/` (IP из GitHub Secrets `PREPROD_SERVER_IP`, динамический)
+- Production: `http://<SERVER_IP>/api/` (IP из GitHub Secrets `SERVER_IP`, динамический) — deployment workflow успешно выполнен через GitHub Actions (main branch).
+
 ---
 
 ## Обзор стратегии
@@ -708,7 +712,7 @@ git push origin feature/your-branch
 
 3. Проверка:
    - Все сервисы в статусе "healthy"
-   - API доступен: http://VPS_IP:8000/api/
+   - API доступен: http://VPS_IP/api/ (через Nginx на порту 80)
 ```
 
 ---
@@ -738,7 +742,7 @@ SITE_DOMAIN=localhost:8000     # ← Порт 8000 (Docker staging)
 DEBUG=False                    # ← Production режим
 POSTGRES_HOST=db               # ← Docker service name
 REDIS_URL=redis://redis:6379/0
-SITE_DOMAIN=123.45.67.89:8000  # ← IP VPS из GitHub Secrets
+SITE_DOMAIN=123.45.67.89       # ← IP VPS из GitHub Secrets (Nginx на порту 80)
 SECRET_KEY=<автогенерируется>  # ← Python secrets.token_urlsafe(50)
 POSTGRES_PASSWORD=<автогенерируется>  # ← openssl rand -base64 24
 STRIPE_SECRET_KEY=<из GitHub Secrets>
@@ -874,6 +878,44 @@ docker compose exec web python manage.py migrate
 docker compose exec web python manage.py showmigrations
 ```
 
+### Проблема: Automatic PR creation fails после preprod deployment
+
+**Симптомы:**
+- `GitHub Actions is not permitted to create or approve pull requests`
+- `Base ref must be a branch` (если используете master вместо main)
+- `No commits between main and release/*`
+- `Head sha can't be blank`
+
+**Решение:**
+
+1. **Переименуйте master → main:**
+   ```bash
+   # На GitHub: Settings → Branches → Default branch → Rename: master → main
+   
+   # Локально:
+   git branch -m master main
+   git fetch origin
+   git branch -u origin/main main
+   git remote set-head origin -a
+   ```
+
+2. **Включите разрешение для GitHub Actions:**
+   - Repository Settings → Actions → General → Workflow permissions
+   - ☑️ Allow GitHub Actions to create and approve pull requests
+
+3. **Убедитесь что в workflow есть:**
+   ```yaml
+   - name: Check out code
+     uses: actions/checkout@v4
+     with:
+       fetch-depth: 0  # Полная история
+   
+   - name: Fetch main branch for comparison
+     run: git fetch origin main:main
+   ```
+
+Подробнее см. [CI_CD.md - Troubleshooting: Automatic PR creation fails](./CI_CD.md#проблема-automatic-pr-creation-fails)
+
 ---
 
 ## Дополнительные ресурсы
@@ -888,15 +930,17 @@ docker compose exec web python manage.py showmigrations
 
 ## Заключение
 
-Трёхступенчатая стратегия обеспечивает:
+Четырёхступенчатая стратегия обеспечивает:
 
-1. ✅ **Быструю разработку** в среде разработки без Docker
-2. ✅ **Надёжное тестирование** в staging среде с Docker
-3. ✅ **Автоматический deployment** на VPS через CI/CD
+1. ✅ **Быструю разработку** в среде разработки без Docker (Development)
+2. ✅ **Надёжное тестирование** в staging среде с Docker (Staging)
+3. ✅ **Полную валидацию** deployment pipeline перед production (Pre-Production)
+4. ✅ **Автоматический deployment** на VPS через Gitflow CI/CD (Production)
 
 Каждое окружение имеет **своё назначение** и **свою конфигурацию**, что позволяет:
-- Быстро итерироваться в разработке
-- Тщательно проверять перед деплоем
-- Безопасно развёртывать в production
+- Быстро итерироваться в разработке (feature/* → develop)
+- Тщательно проверять в Docker перед деплоем (develop → staging)
+- Тестировать полный цикл deployment на preprod VPS (develop → release/*)
+- Безопасно развёртывать в production после review (release/* → main)
 
-**Следуйте этой стратегии** чтобы избежать путаницы с окружениями и конфигурациями!
+**Следуйте этой стратегии с Gitflow workflow** чтобы избежать путаницы с окружениями и конфигурациями!

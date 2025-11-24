@@ -624,7 +624,7 @@ git push origin feature/your-branch-name
 - [Docker Desktop Documentation](https://docs.docker.com/desktop/windows/)
 - [Docker Compose Documentation](https://docs.docker.com/compose/)
 - [Django Documentation](https://docs.djangoproject.com/)
-- [Deployment Strategy](./DEPLOYMENT_STRATEGY.md) — полное описание трёхступенчатой миграции
+- [Deployment Strategy](./DEPLOYMENT_STRATEGY.md) — полное описание четырёхступенчатой миграции (Development → Staging → Pre-Production → Production)
 - [CI/CD Pipeline](./CI_CD.md) — Infrastructure as Code для production
 - [Development Guide](../DEVELOPMENT.md) — стандарты разработки
 
