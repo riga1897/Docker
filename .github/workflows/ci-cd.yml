@@ -549,6 +549,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh pr create \
+            --repo ${{ github.repository }} \
             --base main \
             --head ${{ github.ref_name }} \
             --title "Release to Production" \
