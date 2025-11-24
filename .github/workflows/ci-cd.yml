@@ -8,7 +8,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   # ============================================================================
@@ -265,6 +264,10 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
 
+      - name: Prepare repository name (lowercase)
+        run: |
+          echo "REPO_LOWERCASE=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -279,7 +282,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.REPO_LOWERCASE }}
           tags: |
             type=sha,prefix={{branch}}-
             type=ref,event=branch
@@ -299,7 +302,7 @@ jobs:
 
       - name: Print image info
         run: |
-          echo "✅ Image built and pushed: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          echo "✅ Image built and pushed: ${{ env.REGISTRY }}/${{ env.REPO_LOWERCASE }}"
           echo "📦 Tags: ${{ steps.meta.outputs.tags }}"
 
   # ============================================================================
@@ -322,6 +325,10 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v4
+
+      - name: Prepare repository name (lowercase)
+        run: |
+          echo "REPO_LOWERCASE=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
 
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.9.1
@@ -424,14 +431,14 @@ jobs:
 
       - name: Deploy to pre-production server
         env:
-          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REPOSITORY: ${{ env.REPO_LOWERCASE }}
           IMAGE_TAG: ${{ env.IMAGE_TAG }}
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.PREPROD_SSH_USER }}@${{ secrets.PREPROD_SERVER_IP }} << 'EOFSH'
             set -e
             
             export DEPLOY_DIR="${{ secrets.PREPROD_DEPLOY_DIR }}"
-            export GITHUB_REPOSITORY="${{ github.repository }}"
+            export GITHUB_REPOSITORY="${{ env.REPO_LOWERCASE }}"
             export REGISTRY="${{ env.REGISTRY }}"
             export IMAGE_TAG="${{ env.IMAGE_TAG }}"
             
@@ -557,6 +564,10 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
 
+      - name: Prepare repository name (lowercase)
+        run: |
+          echo "REPO_LOWERCASE=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.9.1
         with:
@@ -658,14 +669,14 @@ jobs:
 
       - name: Deploy to production server
         env:
-          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REPOSITORY: ${{ env.REPO_LOWERCASE }}
           IMAGE_TAG: ${{ env.IMAGE_TAG }}
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOFSH'
             set -e
             
             export DEPLOY_DIR="${{ secrets.DEPLOY_DIR }}"
-            export GITHUB_REPOSITORY="${{ github.repository }}"
+            export GITHUB_REPOSITORY="${{ env.REPO_LOWERCASE }}"
             export REGISTRY="${{ env.REGISTRY }}"
             export IMAGE_TAG="${{ env.IMAGE_TAG }}"
             
@@ -764,7 +775,7 @@ jobs:
 
       - name: Health check
         env:
-          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REPOSITORY: ${{ env.REPO_LOWERCASE }}
         run: |
           echo '🏥 Running application health checks...'
           
@@ -802,13 +813,13 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << EOFDIAG
             cd ${{ secrets.DEPLOY_DIR }}
             echo "=== Services Status ==="
-            GITHUB_REPOSITORY=${{ github.repository }} docker compose -f docker-compose.prod.yml ps
+            GITHUB_REPOSITORY=${{ env.REPO_LOWERCASE }} docker compose -f docker-compose.prod.yml ps
             echo ""
             echo "=== Web Container Logs (last 50 lines) ==="
-            GITHUB_REPOSITORY=${{ github.repository }} docker compose -f docker-compose.prod.yml logs --tail=50 web
+            GITHUB_REPOSITORY=${{ env.REPO_LOWERCASE }} docker compose -f docker-compose.prod.yml logs --tail=50 web
             echo ""
             echo "=== Database Container Logs (last 30 lines) ==="
-            GITHUB_REPOSITORY=${{ github.repository }} docker compose -f docker-compose.prod.yml logs --tail=30 db
+            GITHUB_REPOSITORY=${{ env.REPO_LOWERCASE }} docker compose -f docker-compose.prod.yml logs --tail=30 db
           EOFDIAG
           
           exit 1
