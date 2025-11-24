@@ -528,10 +528,10 @@ jobs:
             RETRY_COUNT=$((RETRY_COUNT + 1))
             echo "Health check attempt $RETRY_COUNT/$MAX_RETRIES..."
             
-            if curl -f -s http://${{ secrets.PREPROD_SERVER_IP }}:8000/api/ > /dev/null 2>&1; then
+            if curl -f -s http://${{ secrets.PREPROD_SERVER_IP }}:80/api/ > /dev/null 2>&1; then
               echo '✅ Pre-production health check passed!'
               echo '🎉 Pre-production application is healthy!'
-              echo "API endpoint: http://${{ secrets.PREPROD_SERVER_IP }}:8000/api/"
+              echo "API endpoint: http://${{ secrets.PREPROD_SERVER_IP }}/api/ (via Nginx)"
               exit 0
             fi
             
@@ -805,10 +805,10 @@ jobs:
             RETRY_COUNT=$((RETRY_COUNT + 1))
             echo "Health check attempt $RETRY_COUNT/$MAX_RETRIES..."
             
-            if curl -f -s http://${{ secrets.SERVER_IP }}:8000/api/ > /dev/null 2>&1; then
+            if curl -f -s http://${{ secrets.SERVER_IP }}:80/api/ > /dev/null 2>&1; then
               echo '✅ Health check passed!'
               echo '🎉 Application is healthy and running!'
-              echo "API endpoint: http://${{ secrets.SERVER_IP }}:8000/api/"
+              echo "API endpoint: http://${{ secrets.SERVER_IP }}/api/ (via Nginx)"
               exit 0
             fi
             
