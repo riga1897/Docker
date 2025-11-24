@@ -552,6 +552,7 @@ jobs:
             --base main \
             --head ${{ github.ref_name }} \
             --title "Release to Production" \
+            --body "$(git log -1 --pretty=%B)" \
             --draft || echo "PR already exists or creation failed"
 
   # ============================================================================
