@@ -67,9 +67,8 @@ services:
       dockerfile: Dockerfile
     container_name: lms_web_dev
     # Development режим: Django runserver с live reload
-    command: >
-      sh -c "python manage.py migrate --noinput &&
-             python manage.py runserver 0.0.0.0:8000"
+    # Миграции выполняются в docker-entrypoint.sh
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
     volumes:
       # КРИТИЧНО: Volume mounting для live reload
       - .:/app

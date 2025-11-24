@@ -399,6 +399,12 @@ jobs:
             docker-compose.prod.yml \
             ${{ secrets.PREPROD_SSH_USER }}@${{ secrets.PREPROD_SERVER_IP }}:${{ secrets.PREPROD_DEPLOY_DIR }}/
 
+      - name: Copy nginx.conf to preprod server
+        run: |
+          scp -o StrictHostKeyChecking=no \
+            nginx.conf \
+            ${{ secrets.PREPROD_SSH_USER }}@${{ secrets.PREPROD_SERVER_IP }}:${{ secrets.PREPROD_DEPLOY_DIR }}/
+
       - name: Copy generate-preprod-env.sh script to server
         run: |
           scp -o StrictHostKeyChecking=no \
@@ -635,6 +641,12 @@ jobs:
         run: |
           scp -o StrictHostKeyChecking=no \
             docker-compose.prod.yml \
+            ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:${{ secrets.DEPLOY_DIR }}/
+
+      - name: Copy nginx.conf to server
+        run: |
+          scp -o StrictHostKeyChecking=no \
+            nginx.conf \
             ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:${{ secrets.DEPLOY_DIR }}/
 
       - name: Copy generate-production-env.sh script to server

@@ -181,7 +181,8 @@ docker compose exec web ls -la /app | grep replit
 - **Изоляция:** Полностью отдельный сервер от production
 - **БД:** PostgreSQL 16 в Docker (изолированная от production)
 - **Redis:** Redis 7 в Docker
-- **Сервер:** Gunicorn (как в production)
+- **Reverse Proxy:** Nginx (порты 80/443)
+- **Сервер:** Gunicorn (порт 8000, internal)
 - **Git Strategy:** Gitflow с release ветками
 - **Триггер:** Push в `release/*` branches
 - **Docker tag:** `preprod-latest`
@@ -222,7 +223,7 @@ git push origin release/v1.0
 #    - Создаёт draft PR: release/v1.0 → main
 
 # 3. Тестирование на препроде
-# Открыть http://<PREPROD_IP>:8000/api/
+# Открыть http://<PREPROD_IP>/api/ (через Nginx на порту 80)
 
 # 4. Если всё ОК — merge в main через PR
 # Или через CLI:
@@ -241,10 +242,11 @@ git push origin main
 4. Сборка Docker образа с тегом preprod-latest
 5. Push в GitHub Container Registry (GHCR)
 6. Deployment на препрод VPS:
+   - Копирование nginx.conf и docker-compose.prod.yml
    - Генерация .env через generate-preprod-env.sh
    - Pull образа ghcr.io/${REPO}:preprod-latest
-   - docker compose -f docker-compose.prod.yml up -d
-   - Health checks на PREPROD_SERVER_IP:8000
+   - docker compose -f docker-compose.prod.yml up -d (6 сервисов)
+   - Health checks через Nginx на PREPROD_SERVER_IP:80
 7. Автоматическое создание draft PR: release/* → main
 ```
 
@@ -307,7 +309,9 @@ release/v1.0 → develop (backmerge изменений)
 - **Изоляция:** Docker контейнеры (docker-compose)
 - **БД:** PostgreSQL 16 в Docker
 - **Redis:** Redis 7 в Docker
-- **Сервер:** Gunicorn (4 workers, production-ready)
+- **Reverse Proxy:** Nginx:alpine (порты 80/443, статика + SSL)
+- **Сервер:** Gunicorn (4 workers, internal порт 8000)
+- **Архитектура:** Client → Nginx:80/443 → Gunicorn:8000
 
 ### Конфигурация:
 **Файл:** `.env` на VPS сервере (автоматически генерируется через `scripts/generate-production-env.sh`)
@@ -345,17 +349,20 @@ STRIPE_SECRET_KEY=sk_live_<production key>
 4. Сборка Docker образа
 5. Push в GitHub Container Registry (GHCR)
 6. Deployment на VPS:
+   - Копирование nginx.conf и docker-compose.prod.yml
+   - Генерация .env через generate-production-env.sh
    - Pull образа из GHCR
-   - docker compose -f docker-compose.prod.yml up -d
-   - Health checks
+   - docker compose -f docker-compose.prod.yml up -d (6 сервисов)
+   - Health checks через Nginx на SERVER_IP:80
 ```
 
 ### Особенности:
-- ✅ **Gunicorn** — production-ready WSGI сервер (4 workers)
+- ✅ **Nginx** — reverse proxy для статики (80/443) и проксирования на Gunicorn
+- ✅ **Gunicorn** — production-ready WSGI сервер (4 workers, internal 8000)
 - ✅ **DEBUG=False** — отключена отладка
 - ✅ **Образ из GHCR** — `ghcr.io/${GITHUB_REPOSITORY}:${IMAGE_TAG}`
-- ✅ **Host volumes** — `/opt/lms/` для persistence
-- ✅ **Health checks** — автоматическая проверка работоспособности
+- ✅ **Named volumes** — `staticfiles_data`, `media_data`, `logs_data` для persistence
+- ✅ **Health checks** — автоматическая проверка работоспособности через Nginx
 - ✅ **Auto-restart** — `restart: unless-stopped`
 - ✅ **Zero-configuration VPS** — автоматическая установка Docker и зависимостей
 
@@ -367,7 +374,7 @@ CI/CD pipeline автоматически настраивает чистый VP
 1. **Docker CE** — если не установлен, добавляется официальный репозиторий и устанавливается
 2. **Docker Compose v2** — plugin для `docker compose` команды
 3. **Deployment директория** — `/opt/lms` с правильными правами доступа
-4. **Поддиректории** — `media/`, `staticfiles/`, `logs/`, `postgres-data/`
+4. **Docker named volumes** — `staticfiles_data`, `media_data`, `logs_data` (управляются автоматически)
 
 **Идемпотентность:**
 - Скрипт проверяет наличие зависимостей перед установкой
@@ -404,15 +411,15 @@ CI/CD pipeline автоматически настраивает чистый VP
 | **Хосты БД/Redis** | localhost | db, redis | db, redis | db, redis |
 | **Live reload** | ✅ Да | ✅ Да | ❌ Нет | ❌ Нет |
 | **DEBUG** | True | True | False | False |
-| **Сервер** | runserver | runserver | Gunicorn | Gunicorn |
-| **Порт** | 5000 (пример) | 8000 | 8000 | 8000 |
+| **Сервер** | runserver | runserver | Nginx→Gunicorn | Nginx→Gunicorn |
+| **Порт** | 5000 (пример) | 8000 | 80 (Nginx)→8000 | 80/443→8000 |
 | **Docker tag** | N/A | local build | preprod-latest | latest |
 | **Сборка образа** | N/A | Локальная (build: .) | GHCR pull | GHCR pull |
 | **Stripe keys** | TEST | TEST | TEST | LIVE |
 | **CI/CD** | ❌ Нет | ❌ Нет | ✅ Да (release/*) | ✅ Да (main) |
 | **.env файл** | .env.example | .env.docker.example | generate-preprod-env.sh | generate-production-env.sh |
 | **Celery** | Локальный или Docker | Docker контейнер | Docker контейнер | Docker контейнер |
-| **Volumes** | Локальные файлы | Именованные volumes | Host paths (/opt/lms-preprod) | Host paths (/opt/lms) |
+| **Volumes** | Локальные файлы | Именованные volumes | Named volumes | Named volumes |
 | **Назначение** | Разработка | Локальный Docker тест | Препрод тест CI/CD | Финальный релиз |
 
 ---

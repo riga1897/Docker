@@ -75,12 +75,12 @@ RUN chmod +x /docker-entrypoint.sh
 # Копирование приложения
 COPY --chown=django:django . .
 
-# Создание директорий для media, static и staticfiles
-RUN mkdir -p /app/media /app/static /app/staticfiles && \
-    chown -R django:django /app/media /app/static /app/staticfiles
-
 # Переключение на непривилегированного пользователя
 USER django
+
+# Создание директорий для media, static и staticfiles ПОСЛЕ переключения пользователя
+# Это гарантирует, что директории создаются с правами пользователя django
+RUN mkdir -p /app/media /app/static /app/staticfiles
 
 # Entrypoint для инициализации
 ENTRYPOINT ["/docker-entrypoint.sh"]

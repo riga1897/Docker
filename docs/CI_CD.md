@@ -229,7 +229,9 @@
    - Проверка и установка Docker Compose v2 plugin
    - Создание deployment директории (`/opt/lms`)
    - Настройка прав доступа
-4. **Копирование docker-compose.prod.yml на сервер**
+4. **Копирование файлов на сервер**:
+   - `docker-compose.prod.yml` — конфигурация 6 сервисов (nginx, db, redis, web, celery_worker, celery_beat)
+   - `nginx.conf` — Nginx конфигурация для reverse proxy и статики
 5. **Копирование и запуск generate-production-env.sh**:
    ```bash
    # Копирование скрипта на VPS
@@ -255,7 +257,7 @@
    # Pull новых образов через docker-compose.prod.yml
    docker compose -f docker-compose.prod.yml pull
    
-   # Запуск всего стека (PostgreSQL, Redis, Web, Celery)
+   # Запуск всего стека (Nginx, PostgreSQL, Redis, Web, Celery)
    docker compose -f docker-compose.prod.yml up -d --remove-orphans
    
    # Cleanup старых образов
@@ -263,8 +265,16 @@
    ```
 6. **Health check:**
    - Sleep 45 секунд (инициализация БД + миграции + collectstatic)
-   - `curl http://{SERVER_IP}:8000/api/` — проверка API с retry loop (12 попыток)
+   - `curl http://{SERVER_IP}:80/api/` — проверка API через Nginx с retry loop (12 попыток)
    - При ошибке — вывод логов всех контейнеров для диагностики
+
+**Production Architecture:**
+```
+Client Request → Nginx:80/443 → Gunicorn:8000 (internal)
+                   ├─ /static/ → Direct serve (30d cache)
+                   ├─ /media/  → Direct serve (7d cache)
+                   └─ /api/    → Proxy to web:8000
+```
 
 **Зависимости:** Запускается **после** успешного `build-and-push` job
 
@@ -288,6 +298,7 @@
 │                                                            │
 │  2. Copy Files to VPS                                      │
 │     ├─▶ docker-compose.prod.yml → /opt/lms/               │
+│     ├─▶ nginx.conf → /opt/lms/                            │
 │     └─▶ generate-production-env.sh → /opt/lms/            │
 │                                                            │
 │  3. Generate .env (АВТОМАТИЧЕСКИ)                          │
@@ -309,16 +320,23 @@
 │     └─▶ docker compose pull (GHCR images)                 │
 │                                                            │
 │  5. Start Services                                         │
-│     └─▶ docker compose up -d (5 сервисов)                 │
+│     └─▶ docker compose up -d (6 сервисов)                 │
+│         ├─▶ Nginx (reverse proxy, ports 80/443)           │
 │         ├─▶ PostgreSQL 16                                 │
 │         ├─▶ Redis 7                                       │
-│         ├─▶ Web (Gunicorn, 4 workers)                     │
+│         ├─▶ Web (Gunicorn, internal port 8000)            │
 │         ├─▶ Celery Worker                                 │
 │         └─▶ Celery Beat                                   │
 │                                                            │
 │  6. Health Checks                                          │
-│     └─▶ curl http://SERVER_IP:8000/api/                   │
+│     └─▶ curl http://SERVER_IP:80/api/ (через Nginx)       │
 │         (retry loop: 12 попыток × 5 сек)                  │
+│                                                            │
+│  📊 Production Architecture:                               │
+│     Client → Nginx (80/443) → Gunicorn (8000, internal)   │
+│     ├─▶ /static/ → Nginx (direct serve, 30d cache)        │
+│     ├─▶ /media/  → Nginx (direct serve, 7d cache)         │
+│     └─▶ /api/    → Proxy to Gunicorn (web:8000)           │
 │                                                            │
 └────────────────────────────────────────────────────────────┘
                            │
