@@ -1,0 +1,194 @@
+# Docker Compose для локальной разработки и тестирования (Windows + Docker Desktop)
+# Staging окружение с live reload для быстрой разработки
+#
+# Требования:
+# - Docker Compose v2+
+# - .env файл (скопируйте из .env.docker.example)
+#
+# Запуск:
+#   docker compose up -d
+#
+# Отличия от production (docker-compose.prod.yml):
+# - Использует локальную сборку образа (build: .) вместо GHCR pull
+# - Volume mounting для live reload (.:/app)
+# - Django runserver вместо Gunicorn
+# - DEBUG=True режим
+# - Локальные volumes вместо host paths
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16
+    container_name: lms_postgres_dev
+    volumes:
+      # Именованный volume для разработки (автоочистка через docker compose down -v)
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-lms_db}
+      - POSTGRES_USER=${POSTGRES_USER:-lms_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      # Публикуем порт для прямого доступа (опционально, для pgAdmin)
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lms_user} -d ${POSTGRES_DB:-lms_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - lms_network
+    restart: unless-stopped
+
+  # Redis (Message Broker для Celery)
+  redis:
+    image: redis:7-alpine
+    container_name: lms_redis_dev
+    ports:
+      # Публикуем порт для прямого доступа (опционально, для redis-cli)
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - lms_network
+    restart: unless-stopped
+
+  # Django Web Application (Development Server)
+  web:
+    # Локальная сборка из Dockerfile
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lms_web_dev
+    # Development режим: Django runserver с live reload
+    # Миграции выполняются в docker-entrypoint.sh
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+    volumes:
+      # КРИТИЧНО: Volume mounting для live reload
+      - .:/app
+      # Исключаем .venv из монтирования (сохраняем зависимости из Docker образа)
+      - /app/.venv
+      # Именованные volumes для media/staticfiles
+      - media_data:/app/media
+      - static_data:/app/staticfiles
+    ports:
+      # Порт 8000 для единообразия с production окружением
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-lms_user}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-lms_db}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - DEBUG=True
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+    networks:
+      - lms_network
+    restart: unless-stopped
+
+  # Celery Worker (обработка асинхронных задач)
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lms_celery_worker_dev
+    command: celery -A config worker --loglevel=info --concurrency=2
+    volumes:
+      # Live reload для Celery tasks
+      - .:/app
+      # Исключаем .venv из монтирования (сохраняем зависимости из Docker образа)
+      - /app/.venv
+      - media_data:/app/media
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-lms_user}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-lms_db}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping --timeout=10 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+    networks:
+      - lms_network
+    restart: unless-stopped
+
+  # Celery Beat (планировщик периодических задач)
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lms_celery_beat_dev
+    command: celery -A config beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      # Live reload для scheduled tasks
+      - .:/app
+      # Исключаем .venv из монтирования (сохраняем зависимости из Docker образа)
+      - /app/.venv
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-lms_user}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-lms_db}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'celery.*beat' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+    networks:
+      - lms_network
+    restart: unless-stopped
+
+# Именованные volumes для разработки
+volumes:
+  postgres_data:
+    name: lms_postgres_data_dev
+  media_data:
+    name: lms_media_data_dev
+  static_data:
+    name: lms_static_data_dev
+
+# Сеть для взаимодействия сервисов
+networks:
+  lms_network:
+    name: lms_network_dev
+    driver: bridge

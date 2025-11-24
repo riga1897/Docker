@@ -1,0 +1,44 @@
+[
+{
+    "model": "users.payment",
+    "pk": 1,
+    "fields": {
+        "created_at": "2025-10-29T09:36:43.635Z",
+        "updated_at": "2025-10-29T09:36:43.635Z",
+        "user": 1,
+        "payment_date": "2025-10-29T09:36:43.635Z",
+        "course": 3,
+        "lesson": null,
+        "amount": "2500.00",
+        "payment_method": "transfer"
+    }
+},
+{
+    "model": "users.payment",
+    "pk": 2,
+    "fields": {
+        "created_at": "2025-10-29T09:36:44.622Z",
+        "updated_at": "2025-10-29T09:36:44.622Z",
+        "user": 1,
+        "payment_date": "2025-10-29T09:36:44.622Z",
+        "course": 2,
+        "lesson": null,
+        "amount": "3000.00",
+        "payment_method": "cash"
+    }
+},
+{
+    "model": "users.payment",
+    "pk": 3,
+    "fields": {
+        "created_at": "2025-10-29T09:36:45.591Z",
+        "updated_at": "2025-10-29T09:36:45.591Z",
+        "user": 1,
+        "payment_date": "2025-10-29T09:36:45.591Z",
+        "course": null,
+        "lesson": 4,
+        "amount": "500.00",
+        "payment_method": "cash"
+    }
+}
+]
