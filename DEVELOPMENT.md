@@ -919,7 +919,8 @@ pytest --cov=apps --cov-report=html
 [tool.ruff]
 line-length = 119
 preview = true
-exclude = [".venv", "migrations", "attached_assets"]
+exclude = [".venv", "migrations", "attached_assets", "scripts", ".pythonlibs", ".local"]
+force-exclude = true
 
 [tool.ruff.lint]
 select = ["B", "E", "F", "C90", "UP", "SIM"]
@@ -927,16 +928,30 @@ fixable = ["ALL"]
 
 [tool.black]
 line-length = 119
+exclude = '''(^\.pythonlibs|^\.local|/(\.eggs|\.git|\.mypy_cache|migrations|attached_assets|scripts)/)'''
 
 [tool.isort]
 line_length = 119
 profile = "black"
+skip_glob = ["scripts/*", ".pythonlibs/*", ".local/*"]
 
 [tool.mypy]
 python_version = "3.12"
 warn_return_any = true
 ignore_missing_imports = true
+exclude = ["^scripts/", "^\\.pythonlibs/", "^\\.local/", "^migrations/"]
 ```
+
+**Исключения из проверок линтеров:**
+
+Следующие папки исключены из проверок всех линтеров (Ruff, Black, isort, Mypy, Flake8):
+
+- **`scripts/`** — служебные утилиты для разработки (`check.py`, `fix.py`, `watch.sh`). Не требуют production-level code quality.
+- **`.pythonlibs/`, `.local/`** — системные папки Replit. Автоматически генерируются средой выполнения.
+- **`migrations/`** — автогенерируемые Django миграции.
+- **`attached_assets/`** — медиа-файлы и статика.
+
+Это обеспечивает быструю работу CI/CD и фокусирует проверки на production коде.
 
 ### 3. Команды проверки
 

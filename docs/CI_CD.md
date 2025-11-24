@@ -185,6 +185,9 @@
    ```
 7. **Health check** с retry loop (12 попыток по 5 секунд)
 8. **Automatic draft PR creation:** `release/* → main` через GitHub CLI
+   - **Формат:** Минималистичный (только заголовок "Release to Production")
+   - **Без markdown body** для избежания YAML parsing conflicts
+   - **Draft режим:** PR создается как черновик для ревью перед production merge
 
 **Permissions:** `contents: write`, `pull-requests: write`
 

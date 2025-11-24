@@ -10,6 +10,33 @@
 [![Type Coverage](https://img.shields.io/badge/Type%20Coverage-100%25-success.svg)](.)
 [![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-blue.svg)](.github/workflows/ci-cd.yml)
 
+---
+
+## 🎓 Выполнение заданий курса
+
+**Задание 1** (настройка удаленного сервера): ✅ Выполнено  
+**Задание 2** (тесты + деплой при push): ✅ Выполнено  
+**Дополнительное задание** (Docker + автосборка образа): ✅ Выполнено
+
+**РАСШИРЕННАЯ РЕАЛИЗАЦИЯ**
+
+Дополнительно реализовано:
+
+1. **Gitflow-based CI/CD** — четырехстадийный workflow (feature → develop → release/* → main)
+2. **Двухуровневый deployment** — Pre-Production VPS (release/*) + Production VPS (main)
+3. **Автоматическое создание PR** — draft PR из release/* в main после preprod deployment
+4. **Zero-configuration VPS** — автоустановка Docker и зависимостей на чистом Ubuntu
+5. **Автогенерация .env** — скрипты для безопасной генерации production конфигов
+6. **Multi-service Docker Compose** — 5 контейнеров (web, db, redis, celery_worker, celery_beat)
+7. **Health checks** — автоматическая проверка доступности после deployment
+8. **Полный линтинг в CI** — Ruff, Black, isort, Mypy, Flake8 (100% type coverage)
+9. **GitHub Container Registry** — публикация образов с тегами preprod-latest/latest
+10. **Staging environment** — локальное тестирование production конфигурации через Docker Desktop
+
+Детали: [docs/CI_CD.md](docs/CI_CD.md), [docs/DEPLOYMENT_STRATEGY.md](docs/DEPLOYMENT_STRATEGY.md)
+
+---
+
 ## 📋 Описание
 
 LMS система — это backend-сервер для платформы онлайн-обучения, предоставляющий RESTful API для управления пользователями, курсами, уроками, подписками и платежами. Проект разработан с использованием современных практик разработки:
