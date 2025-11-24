@@ -325,6 +325,8 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Полная история для сравнения веток
 
       - name: Prepare repository name (lowercase)
         run: |
@@ -543,6 +545,11 @@ jobs:
           
           echo "❌ Health check failed after $MAX_RETRIES attempts"
           exit 1
+
+      - name: Fetch main branch for comparison
+        run: |
+          git fetch origin main:main
+          echo "✅ Fetched main branch for PR creation"
 
       - name: Create Pull Request to main
         env:
