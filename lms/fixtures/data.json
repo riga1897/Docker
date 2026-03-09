@@ -1,0 +1,198 @@
+[
+{
+    "model": "users.user",
+    "pk": 1,
+    "fields": {
+        "password": "pbkdf2_sha256$1000000$o2YKkJ4L6YZzHxQ41GEn4t$kZFBdgc0J8V5GL+W1kaK6hzKeSKENauDcS16VaYhdh8=",
+        "last_login": "2025-11-05T08:35:58.098Z",
+        "is_superuser": true,
+        "first_name": "Администратор",
+        "last_name": "Системы",
+        "is_staff": true,
+        "is_active": true,
+        "date_joined": "2025-10-27T18:15:40.755Z",
+        "email": "admin@example.com",
+        "phone": null,
+        "city": null,
+        "avatar": "",
+        "groups": [],
+        "user_permissions": []
+    }
+},
+{
+    "model": "users.user",
+    "pk": 3,
+    "fields": {
+        "password": "pbkdf2_sha256$1000000$ROSzGpMqJuwmLzyDgyaksA$GXDvaCOeNy5UY4LxG9mw/Y9qzZyZnAGCUnVEIx8BI1k=",
+        "last_login": "2025-11-05T09:48:36.780Z",
+        "is_superuser": false,
+        "first_name": "",
+        "last_name": "",
+        "is_staff": false,
+        "is_active": true,
+        "date_joined": "2025-11-05T08:59:34.720Z",
+        "email": "moderator@example.com",
+        "phone": null,
+        "city": null,
+        "avatar": "",
+        "groups": [
+            1
+        ],
+        "user_permissions": []
+    }
+},
+{
+    "model": "users.user",
+    "pk": 4,
+    "fields": {
+        "password": "pbkdf2_sha256$1000000$Jn1z03khSZDhjf7r5FJUcw$5imxRT1qEdpb/x7hKhrjllsHi2IhgFPzyKzrVV8rmuI=",
+        "last_login": "2025-11-05T09:53:06.371Z",
+        "is_superuser": false,
+        "first_name": "",
+        "last_name": "",
+        "is_staff": false,
+        "is_active": true,
+        "date_joined": "2025-11-05T08:59:37.275Z",
+        "email": "user@example.com",
+        "phone": null,
+        "city": null,
+        "avatar": "",
+        "groups": [],
+        "user_permissions": []
+    }
+},
+{
+    "model": "users.payment",
+    "pk": 1,
+    "fields": {
+        "created_at": "2025-11-04T21:19:36.988Z",
+        "updated_at": "2025-11-04T21:19:36.988Z",
+        "owner": 1,
+        "payment_date": "2025-11-04T21:19:36.988Z",
+        "course": 3,
+        "lesson": null,
+        "amount": "2500.00",
+        "payment_method": "cash"
+    }
+},
+{
+    "model": "users.payment",
+    "pk": 2,
+    "fields": {
+        "created_at": "2025-11-04T21:19:37.235Z",
+        "updated_at": "2025-11-04T21:19:37.235Z",
+        "owner": 1,
+        "payment_date": "2025-11-04T21:19:37.235Z",
+        "course": null,
+        "lesson": 4,
+        "amount": "500.00",
+        "payment_method": "transfer"
+    }
+},
+{
+    "model": "lms.course",
+    "pk": 1,
+    "fields": {
+        "created_at": "2025-10-27T18:15:43.316Z",
+        "updated_at": "2025-10-27T18:15:43.316Z",
+        "owner": 1,
+        "title": "Python для начинающих",
+        "description": "Полный курс по Python с нуля до продвинутого уровня",
+        "preview": "courses/previews/test_preview_4XBpvRe.jpg"
+    }
+},
+{
+    "model": "lms.course",
+    "pk": 2,
+    "fields": {
+        "created_at": "2025-10-27T18:15:43.579Z",
+        "updated_at": "2025-10-27T18:15:43.579Z",
+        "owner": 1,
+        "title": "Django REST Framework",
+        "description": "Создание REST API на Django",
+        "preview": "courses/previews/test_preview_aIEAuKs.jpg"
+    }
+},
+{
+    "model": "lms.course",
+    "pk": 3,
+    "fields": {
+        "created_at": "2025-10-27T18:15:43.839Z",
+        "updated_at": "2025-10-27T18:15:43.839Z",
+        "owner": 1,
+        "title": "PostgreSQL и базы данных",
+        "description": "Проектирование и оптимизация баз данных",
+        "preview": "courses/previews/test_preview_CZxFevh.jpg"
+    }
+},
+{
+    "model": "lms.lesson",
+    "pk": 1,
+    "fields": {
+        "created_at": "2025-10-27T18:15:44.101Z",
+        "updated_at": "2025-10-27T18:15:44.101Z",
+        "owner": 1,
+        "course": 1,
+        "title": "Введение в Python",
+        "description": "Что такое Python и для чего он используется",
+        "preview": "lessons/previews/lesson_preview_7SyCgUf.jpg",
+        "video_url": "https://www.youtube.com/watch?v=python-intro"
+    }
+},
+{
+    "model": "lms.lesson",
+    "pk": 2,
+    "fields": {
+        "created_at": "2025-10-27T18:15:44.364Z",
+        "updated_at": "2025-10-27T18:15:44.364Z",
+        "owner": 1,
+        "course": 1,
+        "title": "Переменные и типы данных",
+        "description": "Основные типы данных в Python",
+        "preview": "lessons/previews/lesson_preview_7YC40d9.jpg",
+        "video_url": "https://www.youtube.com/watch?v=python-variables"
+    }
+},
+{
+    "model": "lms.lesson",
+    "pk": 3,
+    "fields": {
+        "created_at": "2025-10-27T18:15:44.625Z",
+        "updated_at": "2025-10-27T18:15:44.625Z",
+        "owner": 1,
+        "course": 1,
+        "title": "Условия и циклы",
+        "description": "Управляющие конструкции в Python",
+        "preview": "lessons/previews/lesson_preview_9vBtoOM.jpg",
+        "video_url": "https://www.youtube.com/watch?v=python-loops"
+    }
+},
+{
+    "model": "lms.lesson",
+    "pk": 4,
+    "fields": {
+        "created_at": "2025-10-27T18:15:44.884Z",
+        "updated_at": "2025-10-27T18:15:44.884Z",
+        "owner": 1,
+        "course": 2,
+        "title": "Настройка Django проекта",
+        "description": "Создание Django проекта и настройка DRF",
+        "preview": "lessons/previews/lesson_preview_BSh2iIr.jpg",
+        "video_url": "https://www.youtube.com/watch?v=django-setup"
+    }
+},
+{
+    "model": "lms.lesson",
+    "pk": 5,
+    "fields": {
+        "created_at": "2025-10-27T18:15:45.145Z",
+        "updated_at": "2025-10-27T18:15:45.145Z",
+        "owner": 1,
+        "course": 2,
+        "title": "Сериализаторы",
+        "description": "Работа с Django REST Framework Serializers",
+        "preview": "lessons/previews/lesson_preview_dH7POSe.jpg",
+        "video_url": "https://www.youtube.com/watch?v=drf-serializers"
+    }
+}
+]
